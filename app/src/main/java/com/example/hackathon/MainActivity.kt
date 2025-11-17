@@ -6,6 +6,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import android.content.Intent
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
@@ -36,8 +37,14 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, "Analysis", Toast.LENGTH_SHORT).show()
                     true
                 }
+//                R.id.nav_history -> {
+//                    Toast.makeText(this, "History", Toast.LENGTH_SHORT).show()
+//                    true
+//                }
                 R.id.nav_history -> {
-                    Toast.makeText(this, "History", Toast.LENGTH_SHORT).show()
+                    // 👉 Navigate to the MealHistoryActivity
+                    val intent = Intent(this, MealHistoryActivity::class.java)
+                    startActivity(intent)
                     true
                 }
                 else -> false
