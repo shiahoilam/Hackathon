@@ -1,5 +1,6 @@
 package com.example.hackathon
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -7,7 +8,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,6 +34,12 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.nav_analysis -> {
                     Toast.makeText(this, "Analysis", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                R.id.nav_camera -> {
+                    // Navigate to CameraActivity
+                    val intent = Intent(this, CameraActivity::class.java)
+                    startActivity(intent)
                     true
                 }
                 R.id.nav_history -> {
