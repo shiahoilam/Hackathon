@@ -12,23 +12,15 @@ data class Meal(
     @ColumnInfo(name = "food_name")
     val foodName: String,
 
-    @ColumnInfo(name = "calories")
     val calories: Int,
-
-    @ColumnInfo(name = "protein")
     val protein: Float,
-
-    @ColumnInfo(name = "fat")
     val fat: Float,
-
-    @ColumnInfo(name = "carbs")
     val carbs: Float,
 
-    @ColumnInfo(name = "confidence")
-    val confidence: Float,
+    val confidence: Float = 0f,
 
     @ColumnInfo(name = "image_path")
-    val imagePath: String?,
+    val imagePath: String? = null,
 
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis()

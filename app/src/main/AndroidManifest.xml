@@ -24,7 +24,7 @@
         </activity>
 
         <activity
-            android:name=".MealHistoryActivity"
+            android:name=".ui.mealhistory.MealHistoryActivity"
             android:exported="false" />
 
     </application>

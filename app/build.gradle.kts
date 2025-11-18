@@ -47,8 +47,8 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("com.google.ar:core:1.33.0")
+    implementation("androidx.cardview:cardview:1.0.0")
 
-    // ✅ Room Dependencies
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
