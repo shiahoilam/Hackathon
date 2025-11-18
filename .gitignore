@@ -1,3 +1,4 @@
+# Android Studio
 *.iml
 .gradle
 /local.properties
@@ -12,8 +13,19 @@
 /captures
 .externalNativeBuild
 .cxx
-local.properties
+*.hprof
 
-# Project exclude paths
-#/app/
-#/gradle/
+# Intellij
+.idea/compiler.xml
+.idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+.idea/gradle.xml
+.idea/kotlinc.xml
+.idea/migrations.xml
+.idea/misc.xml
+.idea/runConfigurations.xml
+.idea/vcs.xml
+
+# User-specific
+local.properties
+logs/openai

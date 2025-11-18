@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F7F7F7"
+    android:orientation="vertical">
+
+    <!-- Header Section -->
+    <TextView
+        android:id="@+id/tvTotalCalories"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="2,300 Calories logged today"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:padding="24dp"
+        android:background="@color/purple_500"
+        android:textColor="@android:color/white" />
+
+    <!-- Filter Buttons -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="16dp">
+
+        <Button
+            android:id="@+id/btnToday"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:text="Today"
+            android:background="@drawable/btn_filter"
+            android:textColor="@color/purple_600"/>
+
+        <Button
+            android:id="@+id/btnYesterday"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:text="Yesterday"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/btn_filter"
+            android:textColor="@color/purple_600"/>
+
+        <Button
+            android:id="@+id/btnSelectDate"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:text="Select Date"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/btn_filter"
+            android:textColor="@color/purple_600"/>
+    </LinearLayout>
+
+    <!-- RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/mealRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp"/>
+
+</LinearLayout>
