@@ -51,3 +51,128 @@ class MainActivity : AppCompatActivity() {
 //        }
     }
 }
+
+//package com.example.hackathon
+//
+//import android.os.Bundle
+//import android.widget.Button
+//import android.widget.LinearLayout
+//import android.widget.ScrollView
+//import android.widget.TextView
+//import androidx.appcompat.app.AppCompatActivity
+//import androidx.lifecycle.lifecycleScope
+//import com.example.hackathon.data.local.AppDatabase
+//import com.example.hackathon.data.local.entity.Meal
+//import kotlinx.coroutines.flow.first
+//import kotlinx.coroutines.launch
+//
+//class MainActivity : AppCompatActivity() {
+//
+//    private lateinit var database: AppDatabase
+//    private lateinit var statsText: TextView
+//
+//    override fun onCreate(savedInstanceState: Bundle?) {
+//        super.onCreate(savedInstanceState)
+//
+//        // Initialize database
+//        database = AppDatabase.getDatabase(this)
+//
+//        // Create UI
+//        val layout = LinearLayout(this).apply {
+//            orientation = LinearLayout.VERTICAL
+//            setPadding(32, 32, 32, 32)
+//        }
+//
+//        // Stats TextView
+//        statsText = TextView(this).apply {
+//            textSize = 16f
+//            setPadding(0, 0, 0, 32)
+//        }
+//        layout.addView(statsText)
+//
+//        // Add Chicken Button
+//        val btnChicken = Button(this).apply {
+//            text = "Add Chicken (250 cal)"
+//            setOnClickListener {
+//                lifecycleScope.launch {
+//                    val meal = Meal(
+//                        foodName = "Chicken",
+//                        calories = 250,
+//                        protein = 30f,
+//                        fat = 14f,
+//                        carbs = 0f,
+//                        confidence = 0.95f,
+//                        imagePath = null
+//                    )
+//                    database.mealDao().insertMeal(meal)
+//                    updateStats()
+//                }
+//            }
+//        }
+//        layout.addView(btnChicken)
+//
+//        // Add Rice Button
+//        val btnRice = Button(this).apply {
+//            text = "Add Rice (200 cal)"
+//            setOnClickListener {
+//                lifecycleScope.launch {
+//                    val meal = Meal(
+//                        foodName = "Rice",
+//                        calories = 200,
+//                        protein = 4f,
+//                        fat = 0.4f,
+//                        carbs = 44f,
+//                        confidence = 0.92f,
+//                        imagePath = null
+//                    )
+//                    database.mealDao().insertMeal(meal)
+//                    updateStats()
+//                }
+//            }
+//        }
+//        layout.addView(btnRice)
+//
+//        // Clear Button
+//        val btnClear = Button(this).apply {
+//            text = "Clear All"
+//            setOnClickListener {
+//                lifecycleScope.launch {
+//                    database.mealDao().deleteAllMeals()
+//                    updateStats()
+//                }
+//            }
+//        }
+//        layout.addView(btnClear)
+//
+//        // Wrap in ScrollView
+//        val scrollView = ScrollView(this).apply {
+//            addView(layout)
+//        }
+//
+//        setContentView(scrollView)
+//
+//        // Initial stats
+//        updateStats()
+//    }
+//
+//    private fun updateStats() {
+//        lifecycleScope.launch {
+//            val calories = database.mealDao().getTodayTotalCalories().first()
+//            val protein = database.mealDao().getTodayTotalProtein().first()
+//            val carbs = database.mealDao().getTodayTotalCarbs().first()
+//            val fat = database.mealDao().getTodayTotalFat().first()
+//            val count = database.mealDao().getTodayMealCount().first()
+//
+//            statsText.text = """
+//                Room Database Test
+//
+//                Today's Totals:
+//                Calories: $calories cal
+//                Protein: ${String.format("%.1f", protein)}g
+//                Carbs: ${String.format("%.1f", carbs)}g
+//                Fat: ${String.format("%.1f", fat)}g
+//                Meals: $count
+//            """.trimIndent()
+//        }
+//    }
+//}
