@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Primary Colors -->
-    <color name="dark_blue">#344E7C</color>
-    <color name="light_blue">#4C7CA3</color>
-    <color name="teal_green">#5FB6A4</color>
 
     <!-- Bottom Navigation -->
-    <color name="bottom_nav_bg">#202B3A</color>
 
     <!-- Text Colors -->
     <color name="white">#FFFFFF</color>
@@ -20,11 +16,8 @@
 
     <!-- Progress Colors -->
     <color name="progress_green">#4CAF50</color>
-    <color name="progress_yellow">#FFC107</color>
 
     <!-- Background Colors -->
-    <color name="card_background">#2A3F5F</color>
-    <color name="progress_bar_background">#1A2332</color>
 
     <color name="purple_200">#BB86FC</color>
     <color name="purple_500">#6200EE</color>

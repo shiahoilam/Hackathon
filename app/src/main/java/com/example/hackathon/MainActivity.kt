@@ -1,16 +1,33 @@
 package com.example.hackathon
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import android.content.Intent
+import androidx.lifecycle.lifecycleScope
+import com.example.hackathon.data.local.AppDatabase
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.example.hackathon.ui.mealhistory.MealHistoryActivity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
+    // TextViews from your XML layout
+    private lateinit var tvCurrentCalories: TextView
+    private lateinit var tvGoalCalories: TextView
+    private lateinit var tvRemainingCalories: TextView
+    private lateinit var tvProteinValue: TextView
+    private lateinit var tvCarbsValue: TextView
+    private lateinit var tvFatValue: TextView
+
+    // Progress bars
+    private lateinit var proteinProgressBar: ProgressBar
+    private lateinit var carbsProgressBar: ProgressBar
+    private lateinit var fatProgressBar: ProgressBar
+    private lateinit var circularProgress: CircularProgressView
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -22,6 +39,88 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        // Initialize database
+        database = AppDatabase.getDatabase(this)
+
+        // Initialize Views
+        initializeViews()
+
+        private fun initializeViews() {
+            // TextViews
+            tvCurrentCalories = findViewById(R.id.currentCalories)
+            tvGoalCalories = findViewById(R.id.goalCalories)
+            tvRemainingCalories = findViewById(R.id.remainingCalories)
+            tvProteinValue = findViewById(R.id.proteinValue)
+            tvCarbsValue = findViewById(R.id.carbsValue)
+            tvFatValue = findViewById(R.id.fatValue)
+
+            // Progress bars
+            proteinProgressBar = findViewById(R.id.proteinProgress)
+            carbsProgressBar = findViewById(R.id.carbsProgress)
+            fatProgressBar = findViewById(R.id.fatProgress)
+            circularProgress = findViewById(R.id.circularProgress)
+        }
+        private fun observeDatabaseChanges() {
+            // User goals (hardcoded for now - later from settings)
+            val goalCalories = 2000
+            val goalProtein = 60f
+            val goalCarbs = 200f
+            val goalFat = 65f
+
+            // Observe today's total calories
+            lifecycleScope.launch {
+                database.mealDao().getTodayTotalCalories().collect { currentCalories ->
+                    val remaining = goalCalories - currentCalories
+
+                    runOnUiThread {
+                        tvCurrentCalories.text = String.format("%,d", currentCalories)
+                        tvGoalCalories.text = String.format("%,d", goalCalories)
+                        tvRemainingCalories.text = if (remaining >= 0) {
+                            "$remaining cal remaining"
+                        } else {
+                            "${Math.abs(remaining)} cal over"
+                        }
+
+                        // Update circular progress
+                        val progress = currentCalories.toFloat() / goalCalories
+                        circularProgress.setProgress(progress)
+                    }
+                }
+            }
+
+            // Observe today's protein
+            lifecycleScope.launch {
+                database.mealDao().getTodayTotalProtein().collect { currentProtein ->
+                    runOnUiThread {
+                        tvProteinValue.text = "${currentProtein.toInt()}/${goalProtein.toInt()}g"
+                        val proteinProgress = ((currentProtein / goalProtein) * 100).toInt().coerceIn(0, 100)
+                        proteinProgressBar.progress = proteinProgress
+                    }
+                }
+            }
+
+            // Observe today's carbs
+            lifecycleScope.launch {
+                database.mealDao().getTodayTotalCarbs().collect { currentCarbs ->
+                    runOnUiThread {
+                        tvCarbsValue.text = "${currentCarbs.toInt()}/${goalCarbs.toInt()}g"
+                        val carbsProgress = ((currentCarbs / goalCarbs) * 100).toInt().coerceIn(0, 100)
+                        carbsProgressBar.progress = carbsProgress
+                    }
+                }
+            }
+
+            // Observe today's fat
+            lifecycleScope.launch {
+                database.mealDao().getTodayTotalFat().collect { currentFat ->
+                    runOnUiThread {
+                        tvFatValue.text = "${currentFat.toInt()}/${goalFat.toInt()}g"
+                        val fatProgress = ((currentFat / goalFat) * 100).toInt().coerceIn(0, 100)
+                        fatProgressBar.progress = fatProgress
+                    }
+                }
+            }
+        }
         // Setup Bottom Navigation
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
        // val fabCamera = findViewById<FloatingActionButton>(R.id.fab_camera)
@@ -37,7 +136,6 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, "Analysis", Toast.LENGTH_SHORT).show()
                     true
                 }
-
                 R.id.nav_history -> {
                     // 👉 Navigate to the MealHistoryActivity
                     val intent = Intent(this, MealHistoryActivity::class.java)
@@ -65,7 +163,7 @@ class MainActivity : AppCompatActivity() {
 //import android.widget.TextView
 //import androidx.appcompat.app.AppCompatActivity
 //import androidx.lifecycle.lifecycleScope
-//import com.example.hackathon.data.local.db.AppDatabase
+//import com.example.hackathon.data.local.AppDatabase
 //import com.example.hackathon.data.local.entity.Meal
 //import kotlinx.coroutines.flow.first
 //import kotlinx.coroutines.launch

@@ -43,12 +43,15 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.mediarouter)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("com.google.ar:core:1.33.0")
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("androidx.cardview:cardview:1.0.0")
 
+    // ✅ Room Dependencies
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)

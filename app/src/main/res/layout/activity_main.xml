@@ -14,18 +14,18 @@
         android:paddingBottom="100dp">
 
         <!-- TOP APP BAR -->
-<!--        <com.google.android.material.appbar.MaterialToolbar-->
-<!--            android:id="@+id/topAppBar"-->
-<!--            android:layout_width="0dp"-->
-<!--            android:layout_height="56dp"-->
-<!--            android:background="#344E7C"-->
-<!--            android:title="Dashboard"-->
-<!--            android:titleTextColor="@android:color/white"-->
-<!--            app:menu="@menu/top_menu"-->
-<!--            app:titleCentered="true"-->
-<!--            app:layout_constraintTop_toTopOf="parent"-->
-<!--            app:layout_constraintStart_toStartOf="parent"-->
-<!--            app:layout_constraintEnd_toEndOf="parent"/>-->
+        <!--        <com.google.android.material.appbar.MaterialToolbar-->
+        <!--            android:id="@+id/topAppBar"-->
+        <!--            android:layout_width="0dp"-->
+        <!--            android:layout_height="56dp"-->
+        <!--            android:background="#344E7C"-->
+        <!--            android:title="Dashboard"-->
+        <!--            android:titleTextColor="@android:color/white"-->
+        <!--            app:menu="@menu/top_menu"-->
+        <!--            app:titleCentered="true"-->
+        <!--            app:layout_constraintTop_toTopOf="parent"-->
+        <!--            app:layout_constraintStart_toStartOf="parent"-->
+        <!--            app:layout_constraintEnd_toEndOf="parent"/>-->
 
         <!-- GREETING -->
         <TextView
@@ -126,7 +126,6 @@
             android:layout_marginTop="32dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/remainingCalories"/>
-
         <!-- PROTEIN BAR -->
         <TextView
             android:id="@+id/proteinLabel"
@@ -307,8 +306,9 @@
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Bottom Navigation -->
+<!--        android:id="@+id/bottomNavigationView"-->
         <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottomNavigationView"
+            android:id="@+id/bottom_navigation"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:background="#344E7C"
