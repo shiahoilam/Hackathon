@@ -60,16 +60,18 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
     // Data
     private val labels = mutableListOf<String>()
+
+    // UPDATED DATABASE: Added Standard Portion Sizes (in grams)
     private val foodDatabase = mapOf(
-        "apple" to FoodInfo(52, 0.80f),
-        "banana" to FoodInfo(89, 0.94f),
-        "orange" to FoodInfo(47, 0.85f),
-        "bread" to FoodInfo(265, 0.25f),
-        "steak" to FoodInfo(271, 1.05f),
-        "rice" to FoodInfo(130, 0.75f),
-        "carrot" to FoodInfo(41, 0.65f),
-        "egg" to FoodInfo(155, 1.03f),
-        "default" to FoodInfo(100, 0.85f)
+        "apple" to FoodInfo(52, 0.80f, standardPortion = 150),   // 1 medium apple
+        "banana" to FoodInfo(89, 0.94f, standardPortion = 120), // 1 medium banana
+        "orange" to FoodInfo(47, 0.85f, standardPortion = 130),
+        "bread" to FoodInfo(265, 0.25f, standardPortion = 60),  // 2 slices
+        "steak" to FoodInfo(271, 1.05f, standardPortion = 225), // 8 oz steak
+        "rice" to FoodInfo(130, 0.75f, standardPortion = 150),  // 1 cup cooked
+        "carrot" to FoodInfo(41, 0.65f, standardPortion = 80),
+        "egg" to FoodInfo(155, 1.03f, standardPortion = 50),    // 1 large egg
+        "default" to FoodInfo(100, 0.85f, standardPortion = 150)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -113,13 +115,9 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
                 }
 
                 session = Session(this)
-
                 val config = session!!.config
                 if (session!!.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
                     config.depthMode = Config.DepthMode.AUTOMATIC
-                    Log.d(TAG, "Depth API Enabled")
-                } else {
-                    Log.w(TAG, "Depth API Not Supported on this device")
                 }
                 config.focusMode = Config.FocusMode.AUTO
                 session!!.configure(config)
@@ -130,7 +128,6 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             }
         }
 
-        // --- ADDED: Safety check to set texture if session was just created but surface already exists ---
         if (session != null && backgroundRenderer.getTextureId() != -1) {
             session!!.setCameraTextureName(backgroundRenderer.getTextureId())
         }
@@ -138,7 +135,6 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         try {
             session!!.resume()
         } catch (e: CameraNotAvailableException) {
-            Log.e(TAG, "Camera not available", e)
             session = null
             return
         }
@@ -162,13 +158,9 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         detectionExecutor.shutdown()
     }
 
-    // --- GLSurfaceView.Renderer Implementation ---
-
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES20.glClearColor(0.1f, 0.1f, 0.1f, 1.0f)
         backgroundRenderer.createOnGlThread(this)
-
-        // --- CRITICAL FIX: Tell ARCore which texture to use ---
         session?.setCameraTextureName(backgroundRenderer.getTextureId())
     }
 
@@ -179,40 +171,29 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
     override fun onDrawFrame(gl: GL10?) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
-
         val session = session ?: return
         try {
-            // This will now work because we set the texture name!
             val frame = session.update()
-
             backgroundRenderer.draw(frame)
 
             if (!isDetecting.get()) {
                 try {
                     val cameraImage = frame.acquireCameraImage()
-                    val depthImage = try {
-                        frame.acquireDepthImage16Bits()
-                    } catch (e: Exception) { null }
+                    val depthImage = try { frame.acquireDepthImage16Bits() } catch (e: Exception) { null }
 
                     if (cameraImage != null) {
                         isDetecting.set(true)
                         val intrinsics = frame.camera.imageIntrinsics
-
-                        detectionExecutor.execute {
-                            processImage(cameraImage, depthImage, intrinsics)
-                        }
+                        detectionExecutor.execute { processImage(cameraImage, depthImage, intrinsics) }
                     }
                 } catch (e: Exception) {
                     isDetecting.set(false)
                 }
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "Error in draw frame", e)
         }
     }
-
-    // --- Detection Logic ---
 
     private fun processImage(cameraImage: Image, depthImage: Image?, intrinsics: com.google.ar.core.CameraIntrinsics) {
         try {
@@ -247,7 +228,8 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
                     result.copy(
                         weightGrams = weight,
                         calories = realCalories,
-                        unit = "($weight g)"
+                        unit = "($weight g)",
+                        standardPortion = info.standardPortion // Pass the target portion
                     )
                 } else {
                     result
@@ -255,10 +237,7 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             }
 
             depthImage?.close()
-
-            runOnUiThread {
-                detectionOverlay.setDetectionResults(finalResults)
-            }
+            runOnUiThread { detectionOverlay.setDetectionResults(finalResults) }
 
         } catch (e: Exception) {
             Log.e(TAG, "Detection failed", e)
@@ -285,67 +264,38 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
         val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
         val out = java.io.ByteArrayOutputStream()
-
         yuvImage.compressToJpeg(Rect(0, 0, image.width, image.height), 80, out)
         val imageBytes = out.toByteArray()
         val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-
         val matrix = Matrix()
         matrix.postRotate(90f)
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
-    private fun hasCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this, Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
-    }
+    private fun hasCameraPermission() = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+    private fun requestCameraPermission() = ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 0)
 
-    private fun requestCameraPermission() {
-        ActivityCompat.requestPermissions(
-            this, arrayOf(Manifest.permission.CAMERA), CAMERA_PERMISSION_CODE
-        )
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == CAMERA_PERMISSION_CODE && !hasCameraPermission()) {
-            Toast.makeText(this, "Camera permission is needed to run this application", Toast.LENGTH_LONG).show()
-            finish()
-        }
-    }
-
-    // --- Copied Helpers from previous code ---
+    // Standard boiler plate...
     private fun loadLabels() {
-        try {
-            assets.open("labels.txt").bufferedReader().useLines { lines ->
-                labels.addAll(lines)
-            }
-        } catch (e: Exception) { Log.e(TAG, "Error loading labels", e) }
+        try { assets.open("labels.txt").bufferedReader().useLines { lines -> labels.addAll(lines) } } catch (e: Exception) {}
     }
-
     private fun initializeModel() {
         try {
             val modelBuffer = loadModelFile("food_seg16.tflite")
             val compatList = CompatibilityList()
-            val options = Interpreter.Options().apply{
-                if(compatList.isDelegateSupportedOnThisDevice){
-                    this.addDelegate(GpuDelegate(compatList.bestOptionsForThisDevice))
-                } else {
-                    this.setNumThreads(4)
-                }
+            val options = Interpreter.Options().apply {
+                if(compatList.isDelegateSupportedOnThisDevice) addDelegate(GpuDelegate(compatList.bestOptionsForThisDevice))
+                else setNumThreads(4)
             }
             interpreter = Interpreter(modelBuffer, options)
-        } catch (e: Exception) { Log.e(TAG, "Error loading model", e) }
+        } catch (e: Exception) {}
     }
-
     private fun loadModelFile(modelName: String): MappedByteBuffer {
         val fileDescriptor = assets.openFd(modelName)
         val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
         val fileChannel = inputStream.channel
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, fileDescriptor.startOffset, fileDescriptor.declaredLength)
     }
-
     private fun convertTensorImageToByteBuffer(tensorImage: TensorImage): ByteBuffer {
         val buffer = tensorImage.buffer
         val byteBuffer = ByteBuffer.allocateDirect(buffer.capacity())
@@ -354,28 +304,21 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         byteBuffer.rewind()
         return byteBuffer
     }
-
     private fun runInference(inputBuffer: ByteBuffer): List<DetectionResult> {
         val interp = interpreter ?: return emptyList()
-
         val outputs = mutableMapOf<Int, Any>()
         outputs[0] = outputBuffer
         interp.runForMultipleInputsOutputs(arrayOf(inputBuffer), outputs)
-
         return parseRawOutput(outputBuffer)
     }
-
     private fun parseRawOutput(outputBuffer: Array<Array<FloatArray>>): List<DetectionResult> {
         val results = mutableListOf<DetectionResult>()
         val transposedOutput = Array(1) { Array(8400) { FloatArray(139) } }
         for (i in 0 until 8400) {
-            for (j in 0 until 139) {
-                transposedOutput[0][i][j] = outputBuffer[0][j][i]
-            }
+            for (j in 0 until 139) { transposedOutput[0][i][j] = outputBuffer[0][j][i] }
         }
         val detections = transposedOutput[0]
         val numClasses = 139 - 4
-
         for (detection in detections) {
             val cx = detection[0]
             val cy = detection[1]
@@ -385,10 +328,7 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             var classId = -1
             val maxClassIndex = minOf(numClasses, labels.size)
             for (i in 4 until (4 + maxClassIndex)) {
-                if (detection[i] > maxScore) {
-                    maxScore = detection[i]
-                    classId = i - 4
-                }
+                if (detection[i] > maxScore) { maxScore = detection[i]; classId = i - 4 }
             }
             if (maxScore > 0.45f && classId >= 0 && classId < labels.size) {
                 val label = labels[classId].trim()
@@ -402,14 +342,7 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
                         val ymax = minOf(previewHeight, (cy + h / 2) * previewHeight)
                         if (xmax > xmin && ymax > ymin) {
                             val info = foodDatabase[label.lowercase()] ?: foodDatabase["default"]!!
-                            results.add(
-                                DetectionResult(
-                                    foodName = label,
-                                    confidence = maxScore,
-                                    boundingBox = RectF(xmin, ymin, xmax, ymax),
-                                    calories = info.calories
-                                )
-                            )
+                            results.add(DetectionResult(label, maxScore, RectF(xmin, ymin, xmax, ymax), info.calories))
                         }
                     }
                 }
@@ -417,23 +350,18 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         }
         return applyNms(results)
     }
-
     private fun applyNms(results: List<DetectionResult>): List<DetectionResult> {
         val sortedResults = results.sortedByDescending { it.confidence }
         val finalResults = mutableListOf<DetectionResult>()
         for (result in sortedResults) {
             var shouldAdd = true
             for (finalResult in finalResults) {
-                if (calculateIoU(result.boundingBox, finalResult.boundingBox) > 0.45f) {
-                    shouldAdd = false
-                    break
-                }
+                if (calculateIoU(result.boundingBox, finalResult.boundingBox) > 0.45f) { shouldAdd = false; break }
             }
             if (shouldAdd) finalResults.add(result)
         }
         return finalResults
     }
-
     private fun calculateIoU(box1: RectF, box2: RectF): Float {
         val xA = maxOf(box1.left, box2.left)
         val yA = maxOf(box1.top, box2.top)
@@ -445,9 +373,5 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         val unionArea = box1Area + box2Area - intersectionArea
         return if (unionArea > 0) intersectionArea / unionArea else 0f
     }
-
-    companion object {
-        private const val TAG = "CameraActivity"
-        private const val CAMERA_PERMISSION_CODE = 0
-    }
+    companion object { private const val TAG = "CameraActivity" }
 }

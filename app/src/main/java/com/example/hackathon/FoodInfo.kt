@@ -3,8 +3,9 @@ package com.example.hackathon
 import android.graphics.RectF
 
 data class FoodInfo(
-    val calories: Int,  // kcal per 100g
-    val density: Float = 0.85f, // g/cm³ (Default to roughly an apple/mixed food)
+    val calories: Int,      // kcal per 100g
+    val density: Float,     // g/cm³
+    val standardPortion: Int = 150, // Target portion in grams (default 150g)
     val protein: Float = 0.0f,
     val fat: Float = 0.0f,
     val carbs: Float = 0.0f
@@ -15,6 +16,7 @@ data class DetectionResult(
     val confidence: Float,
     val boundingBox: RectF,
     val calories: Int,
-    val weightGrams: Int = 0, // Calculated weight
-    val unit: String = "estimated"
+    val weightGrams: Int = 0,
+    val standardPortion: Int = 150, // Pass this down to the view
+    val unit: String = ""
 )
