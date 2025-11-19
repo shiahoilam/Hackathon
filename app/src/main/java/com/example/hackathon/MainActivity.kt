@@ -10,11 +10,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.hackathon.data.local.AppDatabase
+import com.example.hackathon.data.local.db.AppDatabase
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.example.hackathon.ui.mealhistory.MealHistoryActivity
+import kotlinx.coroutines.launch
 
 class MainActivity : BaseActivity() {
+    private lateinit var database: AppDatabase
     // TextViews from your XML layout
     private lateinit var tvCurrentCalories: TextView
     private lateinit var tvGoalCalories: TextView
@@ -33,6 +35,9 @@ class MainActivity : BaseActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
+        setupBottomNavigation()
+        setSelectedNavItem(R.id.nav_home)
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -44,6 +49,13 @@ class MainActivity : BaseActivity() {
 
         // Initialize Views
         initializeViews()
+
+        // Setup bottom nav
+        setupBottomNavigation()
+
+        // observe database changes and update UI
+        observeDatabaseChanges()
+    }
 
         private fun initializeViews() {
             // TextViews
@@ -122,36 +134,36 @@ class MainActivity : BaseActivity() {
             }
         }
         // Setup Bottom Navigation
-        val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
+//        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
        // val fabCamera = findViewById<FloatingActionButton>(R.id.fab_camera)
 
         // Handle bottom navigation item clicks
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> {
-                    Toast.makeText(this, "Home", Toast.LENGTH_SHORT).show()
-                    true
-                }
-                R.id.nav_analysis -> {
-                    Toast.makeText(this, "Analysis", Toast.LENGTH_SHORT).show()
-                    true
-                }
-                R.id.nav_history -> {
-                    // 👉 Navigate to the MealHistoryActivity
-                    val intent = Intent(this, MealHistoryActivity::class.java)
-                    startActivity(intent)
-                    true
-                }
-                else -> false
-            }
-        }
+//        bottomNav.setOnItemSelectedListener { item ->
+//            when (item.itemId) {
+//                R.id.nav_home -> {
+//                    Toast.makeText(this, "Home", Toast.LENGTH_SHORT).show()
+//                    true
+//                }
+//                R.id.nav_analysis -> {
+//                    Toast.makeText(this, "Analysis", Toast.LENGTH_SHORT).show()
+//                    true
+//                }
+//                R.id.nav_history -> {
+//                    // 👉 Navigate to the MealHistoryActivity
+//                    val intent = Intent(this, MealHistoryActivity::class.java)
+//                    startActivity(intent)
+//                    true
+//                }
+//                else -> false
+//            }
+//        }
 
         // Handle camera FAB click (Main feature!)
 //        fabCamera.setOnClickListener {
 //            Toast.makeText(this, "Camera opened!", Toast.LENGTH_SHORT).show()
 //            // TODO: Open camera activity
 //        }
-    }
+//    }
 }
 
 //package com.example.hackathon

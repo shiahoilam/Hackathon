@@ -11,7 +11,7 @@ import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
 import android.widget.Button
 import android.graphics.Color
-import com.example.hackathon.data.local.AppDatabase
+import com.example.hackathon.data.local.db.AppDatabase
 import com.example.hackathon.data.local.entity.Meal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

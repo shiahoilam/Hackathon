@@ -9,7 +9,7 @@ class MealRepository(private val dao: MealDao) {
 
     fun observeTodayCalories() = dao.observeTodayCalories()
 
-    suspend fun insert(meal: Meal) = dao.insert(meal)
+    suspend fun insert(meal: Meal) = dao.insertMeal(meal)
 
     suspend fun insertAll(meals: List<Meal>) = dao.insertAll(meals)
 
