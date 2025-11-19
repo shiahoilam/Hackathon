@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.core)
+    implementation(libs.filament.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -92,10 +93,34 @@ dependencies {
 //    implementation ("com.google.ar:core:1.41.0")
 //    implementation ("com.gorisse.thomas.sceneform:sceneform:1.23.0")
 
+    // Filament (core) - gltfio artifact provides glTF loading
+//    implementation ("com.google.android.filament:filament-android:1.50.0")
+//    implementation ("com.google.android.filament:gltfio-android:1.50.0")
+//    implementation ("com.google.android.filament:filamesh-android:1.50.0")
+//
+//    implementation ("com.google.android.filament:filament-android:1.51.0")
+//    implementation ("com.google.android.filament:gltfio-android:1.51.0")
+//    implementation ("com.google.android.filament:filament-utils-android:1.51.0")
 
-    implementation ("com.gorisse.thomas.sceneform:sceneform:1.23.0")
+    // Sceneform (for easy 3D model rendering)
+//    implementation ("com.google.ar.sceneform:core:1.17.1")
+//    implementation ("com.google.ar.sceneform:animation:1.17.1")
 
+//    implementation ("com.gorisse.thomas.sceneform:sceneform:1.23.0")
+//    implementation("com.google.ar:core:1.41.0")
+//    implementation("io.github.sceneview:arsceneview:2.0.3")
 
+    // Jetpack XR Core library for XR capabilities
+//    implementation ("androidx.xr:core:1.0.0")
+
+//    implementation ("androidx.xr:sceneform:1.16.0-beta")
+
+    // Jetpack XR session for managing the AR/VR session
+//    implementation ("androidx.xr:session:1.0.0")
+
+    // You may also need additional AR/VR or glTF libraries, for example:
+
+//    implementation ("org.khronos:glTF:1.0.0") // For glTF model loading support
 }
 
 
