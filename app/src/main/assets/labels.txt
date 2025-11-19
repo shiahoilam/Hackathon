@@ -22,11 +22,11 @@ soy
 walnut
 peanut
 egg
-banana //apple
+apple
 date
 apricot
 avocado
-apple //banana
+banana
 strawberry
 cherry
 blueberry

@@ -1,3 +1,5 @@
+import com.android.build.api.dsl.Packaging
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -67,11 +69,11 @@ dependencies {
     implementation(libs.camera.view)
 
     // TensorFlow Lite dependencies
-    implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.support)
     implementation(libs.tensorflow.lite.metadata)
-    //implementation(libs.tensorflow.lite.task.vision)
-    implementation(libs.tensorflow.lite.gpu)
+    implementation(libs.litert)
+    implementation(libs.litert.gpu)
+    implementation(libs.litert.gpu.api)
 
     // Compose BOM and dependencies
     implementation(platform(libs.compose.bom))
