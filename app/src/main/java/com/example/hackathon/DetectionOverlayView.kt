@@ -35,14 +35,13 @@ class DetectionOverlayView @JvmOverloads constructor(
     private val textBounds = Rect()
     private val textRect = RectF()
 
-    private var detectionResults: List<CameraActivity.DetectionResult> = emptyList()
+    // FIX: Changed from List<CameraActivity.DetectionResult> to List<DetectionResult>
+    private var detectionResults: List<DetectionResult> = emptyList()
 
-    fun setDetectionResults(results: List<CameraActivity.DetectionResult>) {
+    // FIX: Changed parameter type here as well
+    fun setDetectionResults(results: List<DetectionResult>) {
         detectionResults = results
-        Log.d("DetectionOverlay", "Received ${results.size} detections to draw, view size: ${width}x${height}")
-        results.forEachIndexed { index, result ->
-            Log.d("DetectionOverlay", "Detection $index: ${result.foodName} at ${result.boundingBox}")
-        }
+        Log.d("DetectionOverlay", "Received ${results.size} detections to draw")
         postInvalidate()
     }
 
@@ -53,15 +52,16 @@ class DetectionOverlayView @JvmOverloads constructor(
             return
         }
 
-        Log.d("DetectionOverlay", "Drawing ${detectionResults.size} detections on canvas ${canvas.width}x${canvas.height}")
-
         for (result in detectionResults) {
             // Draw bounding box
             canvas.drawRect(result.boundingBox, detectionPaint)
 
             // Prepare text
             val confidencePercent = (result.confidence * 100).toInt()
-            val text = "${result.foodName} ${confidencePercent}% (${result.calories}cal)"
+
+            // FIX: Updated text to include the Unit (e.g., "120g") calculated by VolumeEstimator
+            // result.unit will be "per 100g" if no depth, or "(150 g)" if depth worked.
+            val text = "${result.foodName} ${confidencePercent}% - ${result.calories}kcal ${result.unit}"
 
             textPaint.getTextBounds(text, 0, text.length, textBounds)
 

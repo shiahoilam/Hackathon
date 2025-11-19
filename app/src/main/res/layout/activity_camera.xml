@@ -8,7 +8,8 @@
     android:layout_height="match_parent"
     tools:context=".CameraActivity">
 
-    <androidx.camera.view.PreviewView
+    <!-- Changed from PreviewView to GLSurfaceView for ARCore -->
+    <android.opengl.GLSurfaceView
         android:id="@+id/previewView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
@@ -32,7 +33,7 @@
         android:id="@+id/cameraTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Food Scanner"
+        android:text="Food Scanner (AR Depth)"
         android:textColor="@android:color/white"
         android:textSize="18sp"
         android:layout_marginStart="16dp"
