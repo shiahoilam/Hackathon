@@ -37,9 +37,8 @@ open class BaseActivity : AppCompatActivity() {
                 return true
             }
             R.id.nav_camera -> {
-                // TODO: Create CameraActivity later
-                // startActivity(Intent(this, CameraActivity::class.java))
-                // finish()
+                startActivity(Intent(this, CameraActivity::class.java))
+                finish()
                 return true
             }
             else -> return false
@@ -51,7 +50,7 @@ open class BaseActivity : AppCompatActivity() {
             R.id.nav_home -> this is MainActivity
             R.id.nav_analysis -> this is AnalysisActivity
             // R.id.nav_history -> this is HistoryActivity
-            // R.id.nav_camera -> this is CameraActivity
+            R.id.nav_camera -> this is CameraActivity
             else -> false
         }
     }
