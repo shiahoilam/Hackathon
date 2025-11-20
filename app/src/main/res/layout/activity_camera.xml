@@ -19,7 +19,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <com.example.hackathon.DetectionOverlayView
+    <com.example.bitesight.DetectionOverlayView
         android:id="@+id/detectionOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

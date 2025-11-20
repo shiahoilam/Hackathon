@@ -26,12 +26,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -73,8 +67,6 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
     private lateinit var surfaceView: GLSurfaceView
     private lateinit var detectionOverlay: DetectionOverlayView
-    private lateinit var previewView: PreviewView
-    private lateinit var cameraExecutor: ExecutorService
     private lateinit var swipeIndicator: LinearLayout
     private lateinit var analysisOverlay: CardView
     private lateinit var addToTrackerButton: Button
@@ -88,10 +80,13 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     private var session: Session? = null
     private val backgroundRenderer = BackgroundRenderer()
     private var installRequested = false
-    private var imageCapture: ImageCapture? = null
     private lateinit var outputDirectory: File
     private var capturedImagePath: String? = null
     private var capturedTimestamp: Long = 0L
+    
+    // Store latest detection results for capture
+    private var latestDetectionResults: List<DetectionResult> = emptyList()
+    private val captureRequested = AtomicBoolean(false)
 
     private var isOverlayVisible = false
     private val swipeThreshold = 100f // Minimum swipe distance in pixels
@@ -214,17 +209,6 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
     )
 
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            startCamera()
-        } else {
-            Toast.makeText(this, "Camera permission is required", Toast.LENGTH_LONG).show()
-            finish()
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -239,7 +223,6 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
         database = AppDatabase.getDatabase(this)
 
-        previewView = findViewById(R.id.previewView)
         swipeIndicator = findViewById(R.id.swipeIndicator)
         analysisOverlay = findViewById(R.id.analysisOverlay)
         addToTrackerButton = findViewById(R.id.addToTrackerButton)
@@ -251,7 +234,6 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
         findViewById<View>(R.id.backButton).setOnClickListener { finish() }
 
-        cameraExecutor = Executors.newSingleThreadExecutor()
         setupOutputDirectory()
 
         setupSurfaceView()
@@ -260,11 +242,11 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         setupOverlay()
         initializeModel()
 
-        if (allPermissionsGranted()) {
-            startCamera()
-        } else {
-            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
+//        if (allPermissionsGranted()) {
+//            // ARCore camera will start in onResume()
+//        } else {
+//            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+//        }
     }
 
     private fun setupSurfaceView() {
@@ -436,6 +418,7 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
             runOnUiThread {
                 detectionOverlay.setDetectionResults(finalResults)
+                latestDetectionResults = finalResults
             }
 
         } catch (e: Exception) {
@@ -670,8 +653,8 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
             }
         }
 
-        // Also allow swiping on the preview view
-        previewView.setOnTouchListener { view, event ->
+        // Also allow swiping on the surface view
+        surfaceView.setOnTouchListener { view, event ->
             if (!isOverlayVisible) {
                 touchListener.onTouch(view, event)
             } else {
@@ -707,34 +690,88 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     }
 
     private fun captureImage() {
-        val imageCapture = imageCapture ?: run {
-            Toast.makeText(this, "Camera not ready", Toast.LENGTH_SHORT).show()
+        if (session == null) {
+            Toast.makeText(this, "AR Camera not ready", Toast.LENGTH_SHORT).show()
             return
         }
+        
+        // Request capture - the next frame will be captured
+        captureRequested.set(true)
+    }
+    
+    private fun saveCapturedImage(cameraImage: Image, depthImage: Image?, intrinsics: com.google.ar.core.CameraIntrinsics) {
+        try {
+            val bitmap = yuvToBitmap(cameraImage)
+            
+            // Process detection on this frame if not already done
+            val tensorImage = TensorImage.fromBitmap(bitmap)
+            val imageProcessor = ImageProcessor.Builder()
+                .add(ResizeOp(modelInputHeight, modelInputWidth, ResizeOp.ResizeMethod.BILINEAR))
+                .add(NormalizeOp(0f, 255f))
+                .build()
+            val processedImage = imageProcessor.process(tensorImage)
 
-        val photoFile = File(
-            outputDirectory,
-            SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US).format(System.currentTimeMillis()) + ".jpg"
-        )
+            val inputBuffer = convertTensorImageToByteBuffer(processedImage)
+            val rawResults = runInference(inputBuffer)
 
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+            val finalResults = rawResults.map { result ->
+                if (depthImage != null) {
+                    val info = foodDatabase[result.foodName.lowercase()] ?: foodDatabase["other ingredients"]!!
 
-        imageCapture.takePicture(
-            outputOptions,
-            ContextCompat.getMainExecutor(this),
-            object : ImageCapture.OnImageSavedCallback {
-                override fun onError(exception: ImageCaptureException) {
-                    Toast.makeText(this@CameraActivity, "Photo capture failed: ${exception.message}", Toast.LENGTH_SHORT).show()
-                }
+                    val weight = VolumeEstimator.calculateWeight(
+                        result.boundingBox,
+                        depthImage,
+                        intrinsics,
+                        info.density,
+                        surfaceView.width,
+                        surfaceView.height
+                    )
 
-                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    capturedImagePath = photoFile.absolutePath
-                    capturedTimestamp = System.currentTimeMillis() // Store the capture timestamp
-                    displayCapturedImage(photoFile)
-                    showOverlay()
+                    val realCalories = (info.calories * (weight / 100f)).toInt()
+
+                    result.copy(
+                        weightGrams = weight,
+                        calories = realCalories,
+                        unit = "($weight g)"
+                    )
+                } else {
+                    result
                 }
             }
-        )
+            
+            // Save the bitmap to file
+            val photoFile = File(
+                outputDirectory,
+                SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US).format(System.currentTimeMillis()) + ".jpg"
+            )
+            
+            photoFile.outputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            
+            capturedImagePath = photoFile.absolutePath
+            capturedTimestamp = System.currentTimeMillis()
+            latestDetectionResults = finalResults
+            
+            depthImage?.close()
+            cameraImage.close()
+            
+            runOnUiThread {
+                displayCapturedImage(photoFile)
+                updateNutritionalData()
+                showOverlay()
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving captured image", e)
+            cameraImage.close()
+            depthImage?.close()
+            runOnUiThread {
+                Toast.makeText(this, "Photo capture failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } finally {
+            isDetecting.set(false)
+        }
     }
 
     private fun displayCapturedImage(imageFile: File) {
@@ -788,11 +825,24 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     }
 
     private fun updateNutritionalData() {
-        // Mock data - replace with actual detected food data
-        val totalCalories = 2230
-        val proteinPercent = 83
-        val carbsPercent = 50
-        val fatPercent = 63
+        // Use actual detected food data
+        val totalCalories = latestDetectionResults.sumOf { it.calories }
+        var totalProtein = 0f
+        var totalCarbs = 0f
+        var totalFat = 0f
+        
+        latestDetectionResults.forEach { result ->
+            val info = foodDatabase[result.foodName.lowercase()] ?: foodDatabase["other ingredients"]!!
+            val weight = if (result.weightGrams > 0) result.weightGrams.toFloat() else 100f
+            totalProtein += info.protein * (weight / 100f)
+            totalCarbs += info.carbs * (weight / 100f)
+            totalFat += info.fat * (weight / 100f)
+        }
+        
+        // Calculate percentages (assuming daily values: 50g protein, 250g carbs, 65g fat)
+        val proteinPercent = ((totalProtein / 50f) * 100f).toInt().coerceIn(0, 100)
+        val carbsPercent = ((totalCarbs / 250f) * 100f).toInt().coerceIn(0, 100)
+        val fatPercent = ((totalFat / 65f) * 100f).toInt().coerceIn(0, 100)
 
         overlayCalories.text = "${String.format("%,d", totalCalories)} kcal"
         overlayProteinProgress.progress = proteinPercent
@@ -803,29 +853,27 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     private fun saveMealsToTracker() {
         lifecycleScope.launch {
             try {
-                // Mock meals - replace with actual detected food data
-                val meals = listOf(
+                // Use actual detected food data
+                val meals = latestDetectionResults.map { result ->
+                    val info = foodDatabase[result.foodName.lowercase()] ?: foodDatabase["other ingredients"]!!
+                    val weight = if (result.weightGrams > 0) result.weightGrams.toFloat() else 100f
+                    
                     Meal(
-                        foodName = "Grilled Steak",
-                        calories = 100,
-                        protein = 30f,
-                        carbs = 0f,
-                        fat = 5f,
-                        confidence = 0.85f,
-                        imagePath = capturedImagePath,
-                        createdAt = capturedTimestamp
-                    ),
-                    Meal(
-                        foodName = "French Fries",
-                        calories = 100,
-                        protein = 30f,
-                        carbs = 0f,
-                        fat = 5f,
-                        confidence = 0.85f,
+                        foodName = result.foodName,
+                        calories = result.calories,
+                        protein = info.protein * (weight / 100f),
+                        carbs = info.carbs * (weight / 100f),
+                        fat = info.fat * (weight / 100f),
+                        confidence = result.confidence,
                         imagePath = capturedImagePath,
                         createdAt = capturedTimestamp
                     )
-                )
+                }
+
+                if (meals.isEmpty()) {
+                    Toast.makeText(this@CameraActivity, "No food detected", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
 
                 withContext(Dispatchers.IO) {
                     meals.forEach { meal ->
@@ -845,34 +893,6 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         this, Manifest.permission.CAMERA
     ) == PackageManager.PERMISSION_GRANTED
 
-    private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-
-        cameraProviderFuture.addListener({
-            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(previewView.surfaceProvider)
-            }
-
-            imageCapture = ImageCapture.Builder().build()
-
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-            try {
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
-                    this,
-                    cameraSelector,
-                    preview,
-                    imageCapture
-                )
-            } catch (exc: Exception) {
-                Toast.makeText(this, "Camera initialization failed", Toast.LENGTH_SHORT).show()
-            }
-        }, ContextCompat.getMainExecutor(this))
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         session?.close()
@@ -881,8 +901,4 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         gpuDelegate?.close()
         detectionExecutor.shutdown()
     }
-//    override fun onDestroy() {
-//        super.onDestroy()
-//        cameraExecutor.shutdown()
-//    }
 }
