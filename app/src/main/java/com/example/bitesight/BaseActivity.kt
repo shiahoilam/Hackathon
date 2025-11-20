@@ -2,9 +2,9 @@ package com.example.bitesight
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
-import com.example.hackathon.R
 import com.example.bitesight.ui.mealhistory.MealHistoryActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.example.bitesight.R
 
 open class BaseActivity : AppCompatActivity() {
 

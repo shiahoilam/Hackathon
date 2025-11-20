@@ -7,7 +7,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.hackathon.R
+import com.example.bitesight.R
 import com.example.bitesight.data.local.entity.Meal
 
 class MealAdapter(

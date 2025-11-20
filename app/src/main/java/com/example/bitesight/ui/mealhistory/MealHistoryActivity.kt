@@ -1,4 +1,4 @@
-package com.example.hackathon.ui.mealhistory
+package com.example.bitesight.ui.mealhistory
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -7,7 +7,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.bitesight.ui.mealhistory.MealAdapter
 import com.example.bitesight.BaseActivity
-import com.example.hackathon.R
+import com.example.bitesight.R
 import com.example.bitesight.data.local.db.AppDatabase
 import com.example.bitesight.data.local.entity.Meal
 import com.example.bitesight.data.local.repo.MealRepository
