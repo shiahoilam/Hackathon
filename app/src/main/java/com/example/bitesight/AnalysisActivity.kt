@@ -1,7 +1,6 @@
-package com.example.hackathon
+package com.example.bitesight
 
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
@@ -11,8 +10,8 @@ import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
 import android.widget.Button
 import android.graphics.Color
-import com.example.hackathon.data.local.db.AppDatabase
-import com.example.hackathon.data.local.entity.Meal
+import com.example.bitesight.data.local.db.AppDatabase
+import com.example.bitesight.data.local.entity.Meal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

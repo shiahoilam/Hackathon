@@ -1,7 +1,7 @@
-package com.example.hackathon.data.local.repo
+package com.example.bitesight.data.local.repo
 
-import com.example.hackathon.data.local.dao.MealDao
-import com.example.hackathon.data.local.entity.Meal
+import com.example.bitesight.data.local.dao.MealDao
+import com.example.bitesight.data.local.entity.Meal
 
 class MealRepository(private val dao: MealDao) {
 

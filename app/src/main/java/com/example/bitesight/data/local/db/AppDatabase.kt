@@ -1,11 +1,11 @@
-package com.example.hackathon.data.local.db
+package com.example.bitesight.data.local.db
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.hackathon.data.local.dao.MealDao
-import com.example.hackathon.data.local.entity.Meal
+import com.example.bitesight.data.local.dao.MealDao
+import com.example.bitesight.data.local.entity.Meal
 
 @Database(
     entities = [Meal::class],

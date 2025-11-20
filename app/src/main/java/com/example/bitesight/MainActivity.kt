@@ -1,18 +1,13 @@
-package com.example.hackathon
+package com.example.bitesight
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.hackathon.data.local.db.AppDatabase
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.example.hackathon.ui.mealhistory.MealHistoryActivity
+import com.example.bitesight.data.local.db.AppDatabase
 import kotlinx.coroutines.launch
 
 class MainActivity : BaseActivity() {
@@ -166,7 +161,7 @@ class MainActivity : BaseActivity() {
 //    }
 }
 
-//package com.example.hackathon
+//package com.example.bitesight
 //
 //import android.os.Bundle
 //import android.widget.Button
@@ -175,8 +170,8 @@ class MainActivity : BaseActivity() {
 //import android.widget.TextView
 //import androidx.appcompat.app.AppCompatActivity
 //import androidx.lifecycle.lifecycleScope
-//import com.example.hackathon.data.local.AppDatabase
-//import com.example.hackathon.data.local.entity.Meal
+//import com.example.bitesight.data.local.AppDatabase
+//import com.example.bitesight.data.local.entity.Meal
 //import kotlinx.coroutines.flow.first
 //import kotlinx.coroutines.launch
 //

@@ -1,4 +1,4 @@
-package com.example.hackathon.ui.mealhistory
+package com.example.bitesight.ui.mealhistory
 
 import android.view.LayoutInflater
 import android.view.View
@@ -7,8 +7,8 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.hackathon.R
-import com.example.hackathon.data.local.entity.Meal
+import com.example.bitesight.R
+import com.example.bitesight.data.local.entity.Meal
 
 class MealAdapter(
     private var meals: List<Meal>
