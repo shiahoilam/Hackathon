@@ -166,7 +166,7 @@ class CameraActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         "white button mushroom" to FoodInfo(22, 0.30f, 100, 3.1f, 0.3f, 3.3f), // white button (USDA)
         "salad" to FoodInfo(15, 0.20f, 85, 1.2f, 0.2f, 3.0f),          // mixed salad (approx)
         "other ingredients" to FoodInfo(0, 0.00f, 0, 0.0f, 0.0f, 0.0f)
-    
+
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
