@@ -1,43 +1,41 @@
 package com.example.hackathon.ui.mealhistory
 
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.hackathon.BaseActivity
 import com.example.hackathon.R
 import com.example.hackathon.data.local.db.AppDatabase
 import com.example.hackathon.data.local.entity.Meal
 import com.example.hackathon.data.local.repo.MealRepository
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-class MealHistoryActivity : AppCompatActivity() {
+class MealHistoryActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_meal_history)
 
-        // RecyclerView setup
+        setupBottomNavigation()
+        setSelectedNavItem(R.id.nav_history)
+
         val recyclerView = findViewById<RecyclerView>(R.id.mealRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // Get DAO -> Repository
         val dao = AppDatabase.getDatabase(this).mealDao()
         val repo = MealRepository(dao)
 
-        // Adapter setup
         val adapter = MealAdapter(emptyList())
         recyclerView.adapter = adapter
 
-        // Observe meals from Room
         lifecycleScope.launch {
             repo.observeMeals().collect { meals ->
                 adapter.updateMeals(meals)
             }
         }
 
-        // Insert sample data (only once)
+        // Insert sample data once
         lifecycleScope.launch {
             if (repo.countMeals() == 0) {
                 repo.insert(

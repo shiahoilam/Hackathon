@@ -133,8 +133,7 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
-        // Setup Bottom Navigation
-//        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
+      //  val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
        // val fabCamera = findViewById<FloatingActionButton>(R.id.fab_camera)
 
         // Handle bottom navigation item clicks
