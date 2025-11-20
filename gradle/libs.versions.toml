@@ -10,6 +10,8 @@ material = "1.12.0"
 activity = "1.8.2"
 constraintlayout = "2.1.4"
 mediarouter = "1.8.1"
+recyclerview = "1.4.0"
+fragment = "1.8.9"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -24,6 +26,8 @@ room-runtime = { group = "androidx.room", name = "room-runtime", version = "2.6.
 room-ktx = { group = "androidx.room", name = "room-ktx", version = "2.6.1" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version = "2.6.1" }
 androidx-mediarouter = { group = "androidx.mediarouter", name = "mediarouter", version.ref = "mediarouter" }
+androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
+androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 
 
 [plugins]

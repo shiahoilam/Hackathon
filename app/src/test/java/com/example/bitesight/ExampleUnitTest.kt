@@ -1,4 +1,4 @@
-package com.example.hackathon
+package com.example.bitesight
 
 import org.junit.Test
 

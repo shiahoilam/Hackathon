@@ -1,4 +1,4 @@
-package com.example.hackathon
+package com.example.bitesight
 
 data class CalorieDataPoint(
     val label: String,

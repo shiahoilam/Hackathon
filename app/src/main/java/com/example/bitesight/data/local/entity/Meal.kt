@@ -1,4 +1,4 @@
-package com.example.hackathon.data.local.entity
+package com.example.bitesight.data.local.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

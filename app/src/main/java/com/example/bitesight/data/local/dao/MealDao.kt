@@ -1,7 +1,7 @@
-package com.example.hackathon.data.local.dao
+package com.example.bitesight.data.local.dao
 
 import androidx.room.*
-import com.example.hackathon.data.local.entity.Meal
+import com.example.bitesight.data.local.entity.Meal
 import kotlinx.coroutines.flow.Flow
 
 @Dao

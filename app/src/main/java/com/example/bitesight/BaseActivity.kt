@@ -1,9 +1,9 @@
-package com.example.hackathon
+package com.example.bitesight
 
 import android.content.Intent
-import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.example.hackathon.ui.mealhistory.MealHistoryActivity
+import com.example.hackathon.R
+import com.example.bitesight.ui.mealhistory.MealHistoryActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 open class BaseActivity : AppCompatActivity() {
@@ -38,9 +38,8 @@ open class BaseActivity : AppCompatActivity() {
                 return true
             }
             R.id.nav_camera -> {
-                // TODO: Create CameraActivity later
-                // startActivity(Intent(this, CameraActivity::class.java))
-                // finish()
+                startActivity(Intent(this, CameraActivity::class.java))
+                finish()
                 return true
             }
             else -> return false
@@ -51,8 +50,8 @@ open class BaseActivity : AppCompatActivity() {
         return when (itemId) {
             R.id.nav_home -> this is MainActivity
             R.id.nav_analysis -> this is AnalysisActivity
-             R.id.nav_history -> this is MealHistoryActivity
-            // R.id.nav_camera -> this is CameraActivity
+            R.id.nav_history -> this is MealHistoryActivity
+            R.id.nav_camera -> this is CameraActivity
             else -> false
         }
     }

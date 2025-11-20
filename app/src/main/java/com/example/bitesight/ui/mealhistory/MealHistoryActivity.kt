@@ -1,14 +1,16 @@
 package com.example.hackathon.ui.mealhistory
 
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.hackathon.BaseActivity
+import com.example.bitesight.ui.mealhistory.MealAdapter
+import com.example.bitesight.BaseActivity
 import com.example.hackathon.R
-import com.example.hackathon.data.local.db.AppDatabase
-import com.example.hackathon.data.local.entity.Meal
-import com.example.hackathon.data.local.repo.MealRepository
+import com.example.bitesight.data.local.db.AppDatabase
+import com.example.bitesight.data.local.entity.Meal
+import com.example.bitesight.data.local.repo.MealRepository
 import kotlinx.coroutines.launch
 
 class MealHistoryActivity : BaseActivity() {
@@ -23,12 +25,15 @@ class MealHistoryActivity : BaseActivity() {
         val recyclerView = findViewById<RecyclerView>(R.id.mealRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        // Get DAO -> Repository
         val dao = AppDatabase.getDatabase(this).mealDao()
         val repo = MealRepository(dao)
 
+        // Adapter setup
         val adapter = MealAdapter(emptyList())
         recyclerView.adapter = adapter
 
+        // Observe meals from Room
         lifecycleScope.launch {
             repo.observeMeals().collect { meals ->
                 adapter.updateMeals(meals)

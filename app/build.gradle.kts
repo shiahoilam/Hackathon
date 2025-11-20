@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.hackathon"
+    namespace = "com.example.bitesight"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.hackathon"
+        applicationId = "com.example.bitesight"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.mediarouter)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.fragment)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -55,6 +57,18 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+
+    // ✅ CameraX Dependencies
+    val cameraxVersion = "1.3.1"
+    implementation("androidx.camera:camera-core:${cameraxVersion}")
+    implementation("androidx.camera:camera-camera2:${cameraxVersion}")
+    implementation("androidx.camera:camera-lifecycle:${cameraxVersion}")
+    implementation("androidx.camera:camera-view:${cameraxVersion}")
+
+    // ✅ Networking for AI API (using standard HTTP, no external library needed)
+
+    // ✅ Image processing
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
