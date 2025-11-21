@@ -6,19 +6,163 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_gradient">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Settings"
-        android:textColor="@android:color/white"
-        android:textSize="24sp"
-        android:textStyle="bold"
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottom_navigation"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <!-- Bottom Navigation -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/settingsTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Settings"
+                android:textColor="@android:color/white"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="32dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Your Name"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <EditText
+                android:id="@+id/etUserName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g., Alex"
+                android:inputType="textCapWords"
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/gray_text"
+                android:backgroundTint="@color/gray_text"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:layout_marginBottom="24dp"/>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Daily Calorie Goal (kcal)"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"  android:layout_marginBottom="8dp"/>
+
+            <EditText
+                android:id="@+id/etCalorieGoal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g., 2000"
+                android:inputType="number"
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/gray_text"
+                android:backgroundTint="@color/gray_text"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:layout_marginBottom="24dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Daily Macro Goals (grams)"
+                android:textColor="@android:color/white"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android_contentDescription="Protein Goal (g)"
+                android:layout_height="wrap_content"
+                android:text="Protein Goal (g)"
+                android:textColor="@color/protein_blue"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <EditText
+                android:id="@+id/etProteinGoal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g., 60"
+                android:inputType="number"
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/gray_text"
+                android:backgroundTint="@color/gray_text"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Carbs Goal (g)"
+                android:textColor="@color/carbs_orange"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <EditText
+                android:id="@+id/etCarbsGoal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g., 200"
+                android:inputType="number"
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/gray_text"
+                android:backgroundTint="@color/gray_text"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fat Goal (g)"
+                android:textColor="@color/fat_purple"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <EditText
+                android:id="@+id/etFatGoal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g., 65"
+                android:inputType="number"
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/gray_text"
+                android:backgroundTint="@color/gray_text"
+                android:padding="12dp"
+                android:textSize="16sp"/>
+
+            <Button
+                android:id="@+id/btnSaveGoal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:text="Save Goals"
+                android:backgroundTint="#8B7FB8"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="0dp"
@@ -32,13 +176,12 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- Floating Camera Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_camera"
         android:layout_width="wrap_content"
+        android:contentDescription="Camera"
         android:layout_height="wrap_content"
         android:src="@drawable/ic_camera"
-        android:contentDescription="Camera"
         app:fabSize="normal"
         app:tint="@android:color/white"
         app:backgroundTint="#5C7FB8"

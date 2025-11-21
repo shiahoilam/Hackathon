@@ -15,7 +15,7 @@ import com.example.bitesight.data.local.entity.Meal
 import java.io.File
 
 class MealAdapter(
-    var meals: List<Meal>,
+    var meals: List<Meal>, // Public access for ItemTouchHelper/Deletion
     private val listener: MealActionListener
 ) : RecyclerView.Adapter<MealAdapter.MealViewHolder>() {
 
@@ -63,6 +63,10 @@ class MealAdapter(
         // Log Meal Click Listener
         holder.btnLogMeal.setOnClickListener {
             listener.onLogMealClicked(meal)
+        }
+
+        holder.btnViewStats.setOnClickListener {
+            listener.onViewStatsClicked(meal)
         }
     }
 
