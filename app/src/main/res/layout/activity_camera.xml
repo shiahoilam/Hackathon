@@ -83,6 +83,7 @@
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
+            android:contentDescription="hi"
             android:src="@android:drawable/arrow_up_float"
             app:tint="#FFFFFF"
             android:alpha="0.8"
@@ -218,15 +219,15 @@
                                     android:textColor="#FFFFFF"
                                     android:textSize="14sp" />
 
-                                <ProgressBar
-                                    android:id="@+id/overlayProteinProgress"
-                                    style="?android:attr/progressBarStyleHorizontal"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="8dp"
-                                    android:layout_marginTop="8dp"
-                                    android:progress="83"
-                                    android:max="100"
-                                    android:progressTint="#FFFFFF" />
+<!--                                <ProgressBar-->
+<!--                                    android:id="@+id/overlayProteinProgress"-->
+<!--                                    style="?android:attr/progressBarStyleHorizontal"-->
+<!--                                    android:layout_width="match_parent"-->
+<!--                                    android:layout_height="8dp"-->
+<!--                                    android:layout_marginTop="8dp"-->
+<!--                                    android:progress="83"-->
+<!--                                    android:max="100"-->
+<!--                                    android:progressTint="#FFFFFF" />-->
 
                                 <TextView
                                     android:id="@+id/overlayProteinPercent"
@@ -234,8 +235,8 @@
                                     android:layout_height="wrap_content"
                                     android:text="83%"
                                     android:textColor="#FFFFFF"
-                                    android:textSize="12sp"
-                                    android:layout_gravity="end"
+                                    android:textSize="20sp"
+                                    android:textStyle="bold"
                                     android:layout_marginTop="4dp" />
 
                             </LinearLayout>
@@ -274,15 +275,15 @@
                                     android:textColor="#FFFFFF"
                                     android:textSize="14sp" />
 
-                                <ProgressBar
-                                    android:id="@+id/overlayCarbsProgress"
-                                    style="?android:attr/progressBarStyleHorizontal"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="8dp"
-                                    android:layout_marginTop="8dp"
-                                    android:progress="50"
-                                    android:max="100"
-                                    android:progressTint="#FFFFFF" />
+<!--                                <ProgressBar-->
+<!--                                    android:id="@+id/overlayCarbsProgress"-->
+<!--                                    style="?android:attr/progressBarStyleHorizontal"-->
+<!--                                    android:layout_width="match_parent"-->
+<!--                                    android:layout_height="8dp"-->
+<!--                                    android:layout_marginTop="8dp"-->
+<!--                                    android:progress="50"-->
+<!--                                    android:max="100"-->
+<!--                                    android:progressTint="#FFFFFF" />-->
 
                                 <TextView
                                     android:id="@+id/overlayCarbsPercent"
@@ -290,8 +291,8 @@
                                     android:layout_height="wrap_content"
                                     android:text="50%"
                                     android:textColor="#FFFFFF"
-                                    android:textSize="12sp"
-                                    android:layout_gravity="end"
+                                    android:textSize="20sp"
+                                    android:textStyle="bold"
                                     android:layout_marginTop="4dp" />
 
                             </LinearLayout>
@@ -321,15 +322,15 @@
                                     android:textColor="#FFFFFF"
                                     android:textSize="14sp" />
 
-                                <ProgressBar
-                                    android:id="@+id/overlayFatProgress"
-                                    style="?android:attr/progressBarStyleHorizontal"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="8dp"
-                                    android:layout_marginTop="8dp"
-                                    android:progress="63"
-                                    android:max="100"
-                                    android:progressTint="#FFFFFF" />
+<!--                                <ProgressBar-->
+<!--                                    android:id="@+id/overlayFatProgress"-->
+<!--                                    style="?android:attr/progressBarStyleHorizontal"-->
+<!--                                    android:layout_width="match_parent"-->
+<!--                                    android:layout_height="8dp"-->
+<!--                                    android:layout_marginTop="8dp"-->
+<!--                                    android:progress="63"-->
+<!--                                    android:max="100"-->
+<!--                                    android:progressTint="#FFFFFF" />-->
 
                                 <TextView
                                     android:id="@+id/overlayFatPercent"
@@ -337,8 +338,8 @@
                                     android:layout_height="wrap_content"
                                     android:text="63%"
                                     android:textColor="#FFFFFF"
-                                    android:textSize="12sp"
-                                    android:layout_gravity="end"
+                                    android:textSize="20sp"
+                                    android:textStyle="bold"
                                     android:layout_marginTop="4dp" />
 
                             </LinearLayout>

@@ -93,6 +93,15 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     private var isOverlayVisible = false
     private val swipeThreshold = 100f // Minimum swipe distance in pixels
 
+    // Performance optimization: throttle detection
+    private var frameCounter = 0
+    private val detectionThrottle = 60 // Process every 60th frame (~0.5-1 times per second at 30-60 FPS) - reduced rate
+    private val maxDetectionResults = 8 // Limit number of stored results (reduced from 10)
+    private var lastUpdateTime = 0L
+    private val minUpdateInterval = 1000L // Minimum 1 second between UI updates
+    private val uiHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var pendingResults: List<DetectionResult>? = null
+
     // TFLite
     private var interpreter: Interpreter? = null
     private var gpuDelegate: GpuDelegate? = null
@@ -233,9 +242,9 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         analysisOverlay = findViewById(R.id.analysisOverlay)
         addToTrackerButton = findViewById(R.id.addToTrackerButton)
         overlayCalories = findViewById(R.id.overlayCalories)
-        overlayProteinProgress = findViewById(R.id.overlayProteinProgress)
-        overlayCarbsProgress = findViewById(R.id.overlayCarbsProgress)
-        overlayFatProgress = findViewById(R.id.overlayFatProgress)
+//        overlayProteinProgress = findViewById(R.id.overlayProteinProgress)
+//        overlayCarbsProgress = findViewById(R.id.overlayCarbsProgress)
+//        overlayFatProgress = findViewById(R.id.overlayFatProgress)
         overlayProteinPercent = findViewById(R.id.overlayProteinPercent)
         overlayCarbsPercent = findViewById(R.id.overlayCarbsPercent)
         overlayFatPercent = findViewById(R.id.overlayFatPercent)
@@ -355,24 +364,31 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
             if (!isDetecting.get()) {
                 try {
-                    val cameraImage = frame.acquireCameraImage()
-                    val depthImage = try { frame.acquireDepthImage16Bits() } catch (e: Exception) { null }
+                    // Throttle detection: only process every Nth frame for overlay display
+                    frameCounter++
+                    val shouldProcess = (frameCounter % detectionThrottle == 0) || captureRequested.get()
+                    
+                    if (shouldProcess) {
+                        val cameraImage = frame.acquireCameraImage()
+                        val depthImage = try { frame.acquireDepthImage16Bits() } catch (e: Exception) { null }
 
-                    if (cameraImage != null) {
-                        isDetecting.set(true)
-                        val intrinsics = frame.camera.imageIntrinsics
-                        
-                        // Check if capture is requested
-                        if (captureRequested.getAndSet(false)) {
-                            // Save and process the captured image
-                            detectionExecutor.execute { saveCapturedImage(cameraImage, depthImage, intrinsics) }
-                        } else {
-                            // Normal detection processing
-                            detectionExecutor.execute { processImage(cameraImage, depthImage, intrinsics) }
+                        if (cameraImage != null) {
+                            isDetecting.set(true)
+                            val intrinsics = frame.camera.imageIntrinsics
+                            
+                            // Check if capture is requested (user swiped up)
+                            if (captureRequested.getAndSet(false)) {
+                                // Capture: save image and process it
+                                detectionExecutor.execute { saveCapturedImage(cameraImage, depthImage, intrinsics) }
+                            } else {
+                                // Normal continuous detection for overlay display
+                                detectionExecutor.execute { processImage(cameraImage, depthImage, intrinsics) }
+                            }
                         }
                     }
                 } catch (e: Exception) {
                     isDetecting.set(false)
+                    Log.e(TAG, "Error acquiring camera image", e)
                 }
             }
         } catch (e: Exception) {
@@ -381,9 +397,13 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     }
 
     private fun processImage(cameraImage: Image, depthImage: Image?, intrinsics: com.google.ar.core.CameraIntrinsics) {
+        var bitmap: Bitmap? = null
+        var cameraImageClosed = false
+        var depthImageClosed = false
         try {
-            val bitmap = yuvToBitmap(cameraImage)
+            bitmap = yuvToBitmap(cameraImage)
             cameraImage.close()
+            cameraImageClosed = true
 
             val tensorImage = TensorImage.fromBitmap(bitmap)
             val imageProcessor = ImageProcessor.Builder()
@@ -393,10 +413,13 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
             val processedImage = imageProcessor.process(tensorImage)
 
             val inputBuffer = convertTensorImageToByteBuffer(processedImage)
-            val rawResults = runInference(inputBuffer)
+            var rawResults = runInference(inputBuffer)
+
+            // Limit results to top N by confidence
+            rawResults = rawResults.sortedByDescending { it.confidence }.take(maxDetectionResults)
 
             val finalResults = rawResults.map { result ->
-                if (depthImage != null) {
+                if (depthImage != null && !depthImageClosed) {
                     val info = foodDatabase[result.foodName.lowercase()] ?: foodDatabase["default"]!!
 
                     val weight = VolumeEstimator.calculateWeight(
@@ -421,19 +444,65 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
                 }
             }
 
-            depthImage?.close()
+            if (!depthImageClosed) {
+                depthImage?.close()
+                depthImageClosed = true
+            }
             
-            // Store current results for capture when swiping up
-            runOnUiThread {
-                currentOverlayResults = finalResults
-                detectionOverlay.setDetectionResults(finalResults)
+            // Store current results (limited) for capture when swiping up
+            // Throttle UI updates aggressively to prevent ANR
+            val currentTime = System.currentTimeMillis()
+            val previousResults = currentOverlayResults // Copy reference for comparison
+            
+            // Always store results for capture
+            currentOverlayResults = finalResults
+            
+            // Only update UI if enough time has passed
+            if (currentTime - lastUpdateTime >= minUpdateInterval) {
+                // Check if results actually changed
+                val resultsChanged = finalResults.size != previousResults.size ||
+                        (finalResults.isNotEmpty() && previousResults.isNotEmpty() && 
+                         finalResults.zip(previousResults).any { (a, b) -> 
+                            a.foodName != b.foodName || Math.abs(a.confidence - b.confidence) > 0.05f
+                        }) || finalResults.isEmpty() != previousResults.isEmpty()
+                
+                if (resultsChanged) {
+                    // Store pending results and schedule update
+                    pendingResults = finalResults
+                    
+                    // Remove any pending updates to batch them
+                    uiHandler.removeCallbacksAndMessages(null)
+                    
+                    // Schedule update after a small delay to batch multiple updates
+                    uiHandler.postDelayed({
+                        pendingResults?.let { results ->
+                            currentOverlayResults = results
+                            detectionOverlay.setDetectionResults(results)
+                            lastUpdateTime = System.currentTimeMillis()
+                            pendingResults = null
+                        }
+                    }, 200) // 200ms delay to batch updates and reduce frequency
+                }
             }
 
         } catch (e: Exception) {
             Log.e(TAG, "Detection failed", e)
-            cameraImage.close()
-            depthImage?.close()
         } finally {
+            // Ensure resources are always released
+            try {
+                if (!cameraImageClosed) {
+                    cameraImage.close()
+                }
+                if (!depthImageClosed) {
+                    depthImage?.close()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing images", e)
+            }
+            
+            // Recycle bitmap to free memory
+            bitmap?.recycle()
+            
             isDetecting.set(false)
         }
     }
@@ -665,18 +734,25 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
             return
         }
 
-        // Capture current overlay results before requesting frame capture
+        // Capture current overlay results immediately (what's shown on screen)
         if (currentOverlayResults.isNotEmpty()) {
-            latestDetectionResults = currentOverlayResults
+            latestDetectionResults = currentOverlayResults.toList() // Make a copy
         }
 
-        // Request capture - the next frame will be captured
+        // Request frame capture to also process and save the image
+        // This doesn't stop continuous detection - it just adds a capture task
         captureRequested.set(true)
     }
 
     private fun saveCapturedImage(cameraImage: Image, depthImage: Image?, intrinsics: com.google.ar.core.CameraIntrinsics) {
+        var bitmap: Bitmap? = null
+        var processedBitmap: Bitmap? = null
+        var cameraImageClosed = false
+        var depthImageClosed = false
         try {
-            val bitmap = yuvToBitmap(cameraImage)
+            bitmap = yuvToBitmap(cameraImage)
+            cameraImage.close()
+            cameraImageClosed = true
 
             // Process detection on this frame if not already done
             val tensorImage = TensorImage.fromBitmap(bitmap)
@@ -687,10 +763,13 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
             val processedImage = imageProcessor.process(tensorImage)
 
             val inputBuffer = convertTensorImageToByteBuffer(processedImage)
-            val rawResults = runInference(inputBuffer)
+            var rawResults = runInference(inputBuffer)
+
+            // Limit results to top N by confidence
+            rawResults = rawResults.sortedByDescending { it.confidence }.take(maxDetectionResults)
 
             val finalResults = rawResults.map { result ->
-                if (depthImage != null) {
+                if (depthImage != null && !depthImageClosed) {
                     val info = foodDatabase[result.foodName.lowercase()] ?: foodDatabase["other ingredients"]!!
 
                     val weight = VolumeEstimator.calculateWeight(
@@ -714,30 +793,34 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
                 }
             }
 
-            // Save the bitmap to file
+            // Save the bitmap to file (create a copy for saving)
             val photoFile = File(
                 outputDirectory,
                 SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US).format(System.currentTimeMillis()) + ".jpg"
             )
 
+            // Create a copy of bitmap for saving (original will be recycled)
+            // Handle nullable config
+            val bitmapConfig = bitmap?.config ?: Bitmap.Config.ARGB_8888
+            processedBitmap = bitmap?.copy(bitmapConfig, false)
             photoFile.outputStream().use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                processedBitmap?.compress(Bitmap.CompressFormat.JPEG, 90, out)
             }
 
             capturedImagePath = photoFile.absolutePath
             capturedTimestamp = System.currentTimeMillis()
             
-            // Use processed results, or fallback to current overlay results if empty
-            latestDetectionResults = if (finalResults.isNotEmpty()) {
-                finalResults
-            } else if (currentOverlayResults.isNotEmpty()) {
-                currentOverlayResults
-            } else {
-                emptyList()
+            // Use processed results, or fallback to current overlay results if empty (limited)
+            latestDetectionResults = when {
+                finalResults.isNotEmpty() -> finalResults
+                currentOverlayResults.isNotEmpty() -> currentOverlayResults.take(maxDetectionResults)
+                else -> emptyList()
             }
 
-            depthImage?.close()
-            cameraImage.close()
+            if (!depthImageClosed) {
+                depthImage?.close()
+                depthImageClosed = true
+            }
 
             runOnUiThread {
                 displayCapturedImage(photoFile)
@@ -752,12 +835,26 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
         } catch (e: Exception) {
             Log.e(TAG, "Error saving captured image", e)
-            cameraImage.close()
-            depthImage?.close()
             runOnUiThread {
                 Toast.makeText(this, "Photo capture failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         } finally {
+            // Ensure resources are always released
+            try {
+                if (!cameraImageClosed) {
+                    cameraImage.close()
+                }
+                if (!depthImageClosed) {
+                    depthImage?.close()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing images", e)
+            }
+            
+            // Recycle bitmaps to free memory
+            bitmap?.recycle()
+            processedBitmap?.recycle()
+            
             isDetecting.set(false)
         }
     }
@@ -815,6 +912,9 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     private fun updateNutritionalData() {
         // Use actual detected food data
         val totalCalories = latestDetectionResults.sumOf { it.calories }
+        
+        // Calculate total protein, carbs, and fat in grams
+        // foodDatabase values are per 100g, so multiply by (weightGrams / 100)
         var totalProtein = 0f
         var totalCarbs = 0f
         var totalFat = 0f
@@ -822,29 +922,41 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         latestDetectionResults.forEach { result ->
             val info = foodDatabase[result.foodName.lowercase()] ?: foodDatabase["other ingredients"]!!
             val weight = if (result.weightGrams > 0) result.weightGrams.toFloat() else 100f
+            // Calculate: protein per 100g * (actual weight / 100)
             totalProtein += info.protein * (weight / 100f)
             totalCarbs += info.carbs * (weight / 100f)
             totalFat += info.fat * (weight / 100f)
         }
 
-        // Calculate percentages (assuming daily values: 50g protein, 250g carbs, 65g fat)
-        val proteinPercent = ((totalProtein / 50f) * 100f).toInt().coerceIn(0, 100)
-        val carbsPercent = ((totalCarbs / 250f) * 100f).toInt().coerceIn(0, 100)
-        val fatPercent = ((totalFat / 65f) * 100f).toInt().coerceIn(0, 100)
-
+        // Display calories
         overlayCalories.text = "${String.format("%,d", totalCalories)} kcal"
-        overlayProteinProgress.progress = proteinPercent
-        overlayCarbsProgress.progress = carbsPercent
-        overlayFatProgress.progress = fatPercent
         
-        // Update percentage labels
-        overlayProteinPercent.text = "$proteinPercent%"
-        overlayCarbsPercent.text = "$carbsPercent%"
-        overlayFatPercent.text = "$fatPercent%"
+        // Display protein, carbs, and fat in grams
+        overlayProteinPercent.text = String.format("%.1f g", totalProtein)
+        overlayCarbsPercent.text = String.format("%.1f g", totalCarbs)
+        overlayFatPercent.text = String.format("%.1f g", totalFat)
+        
+//        // Hide or set progress bars to 0 since we're not showing percentages anymore
+//        overlayProteinProgress.progress = 0
+//        overlayCarbsProgress.progress = 0
+//        overlayFatProgress.progress = 0
     }
 
     private fun populateBreakdown() {
-        // Clear existing items (remove static items from layout)
+        // Clear existing items (remove static items from layout) and properly clean up views
+        val childCount = overlayFoodItems.childCount
+        for (i in 0 until childCount) {
+            val child = overlayFoodItems.getChildAt(i)
+            if (child is androidx.cardview.widget.CardView) {
+                // Remove all children recursively
+                if (child.childCount > 0) {
+                    val innerLayout = child.getChildAt(0)
+                    if (innerLayout is LinearLayout) {
+                        innerLayout.removeAllViews()
+                    }
+                }
+            }
+        }
         overlayFoodItems.removeAllViews()
 
         // Add each detected food item to the breakdown
