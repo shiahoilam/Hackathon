@@ -2,7 +2,9 @@ package com.example.bitesight
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
+import com.example.bitesight.ui.mealhistory.MealHistoryActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.example.bitesight.R
 
 open class BaseActivity : AppCompatActivity() {
 
@@ -31,13 +33,17 @@ open class BaseActivity : AppCompatActivity() {
                 return true
             }
             R.id.nav_history -> {
-                // TODO: Create HistoryActivity later
-                // startActivity(Intent(this, HistoryActivity::class.java))
-                // finish()
+                startActivity(Intent(this, MealHistoryActivity::class.java))
+                finish()
                 return true
             }
             R.id.nav_camera -> {
                 startActivity(Intent(this, CameraActivity::class.java))
+                finish()
+                return true
+            }
+            R.id.nav_settings -> {
+                startActivity(Intent(this, SettingsActivity::class.java))
                 finish()
                 return true
             }
@@ -49,8 +55,9 @@ open class BaseActivity : AppCompatActivity() {
         return when (itemId) {
             R.id.nav_home -> this is MainActivity
             R.id.nav_analysis -> this is AnalysisActivity
-            // R.id.nav_history -> this is HistoryActivity
+            R.id.nav_history -> this is MealHistoryActivity
             R.id.nav_camera -> this is CameraActivity
+            R.id.nav_settings -> this is SettingsActivity
             else -> false
         }
     }

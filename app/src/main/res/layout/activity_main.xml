@@ -13,20 +13,6 @@
         android:layout_height="wrap_content"
         android:paddingBottom="100dp">
 
-        <!-- TOP APP BAR -->
-        <!--        <com.google.android.material.appbar.MaterialToolbar-->
-        <!--            android:id="@+id/topAppBar"-->
-        <!--            android:layout_width="0dp"-->
-        <!--            android:layout_height="56dp"-->
-        <!--            android:background="#344E7C"-->
-        <!--            android:title="Dashboard"-->
-        <!--            android:titleTextColor="@android:color/white"-->
-        <!--            app:menu="@menu/top_menu"-->
-        <!--            app:titleCentered="true"-->
-        <!--            app:layout_constraintTop_toTopOf="parent"-->
-        <!--            app:layout_constraintStart_toStartOf="parent"-->
-        <!--            app:layout_constraintEnd_toEndOf="parent"/>-->
-
         <!-- GREETING -->
         <TextView
             android:id="@+id/greeting"
@@ -53,13 +39,46 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/greeting" />
 
+        <!-- Today's Nutrition Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/todayCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="#3A5C7FB8"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:layout_constraintTop_toBottomOf="@id/dateTxt"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="12dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Today's Nutrition"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginStart="8dp"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- CIRCULAR PROGRESS SECTION -->
         <com.example.bitesight.CircularProgressView
             android:id="@+id/circularProgress"
             android:layout_width="240dp"
             android:layout_height="240dp"
             android:layout_marginTop="24dp"
-            app:layout_constraintTop_toBottomOf="@id/dateTxt"
+            app:layout_constraintTop_toBottomOf="@id/todayCard"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
 
@@ -118,7 +137,7 @@
             android:id="@+id/macrosTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Macros"
+            android:text="Daily Macros"
             android:textColor="@android:color/white"
             android:textSize="20sp"
             android:textStyle="bold"
@@ -126,6 +145,20 @@
             android:layout_marginTop="32dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/remainingCalories"/>
+
+        <!-- Add this subtitle RIGHT AFTER macrosTitle -->
+        <TextView
+            android:id="@+id/macrosSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Your protein, carbs, and fat intake"
+            android:textColor="#C0C6D2"
+            android:textSize="12sp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="4dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/macrosTitle"/>
+
         <!-- PROTEIN BAR -->
         <TextView
             android:id="@+id/proteinLabel"
@@ -137,7 +170,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/macrosTitle"/>
+            app:layout_constraintTop_toBottomOf="@id/macrosSubtitle"/>
 
         <ProgressBar
             android:id="@+id/proteinProgress"
@@ -320,21 +353,21 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
 
-        <!-- Floating Camera Button -->
-<!--        <com.google.android.material.floatingactionbutton.FloatingActionButton-->
-<!--            android:id="@+id/fab_camera"-->
-<!--            android:layout_width="wrap_content"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:src="@drawable/ic_camera"-->
-<!--            android:contentDescription="Camera"-->
-<!--            app:fabSize="normal"-->
-<!--            app:tint="@android:color/white"-->
-<!--            app:backgroundTint="#5C7FB8"-->
-<!--            app:elevation="8dp"-->
-<!--            android:layout_marginBottom="28dp"-->
-<!--            app:layout_constraintBottom_toBottomOf="parent"-->
-<!--            app:layout_constraintStart_toStartOf="parent"-->
-<!--            app:layout_constraintEnd_toEndOf="parent"/>-->
+<!--         Floating Camera Button -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_camera"
+            android:contentDescription="Camera"
+            app:fabSize="normal"
+            app:tint="@android:color/white"
+            app:backgroundTint="#5C7FB8"
+            app:elevation="8dp"
+            android:layout_marginBottom="28dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

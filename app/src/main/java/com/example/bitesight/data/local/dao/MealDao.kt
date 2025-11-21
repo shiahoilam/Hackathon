@@ -88,6 +88,14 @@ interface MealDao {
     """)
     fun getTodayMealCount(): Flow<Int>
 
+    @Query("""
+    SELECT * FROM meal 
+    WHERE created_at BETWEEN :startTime AND :endTime
+    ORDER BY created_at DESC
+""")
+    fun observeMealsByDateRange(startTime: Long, endTime: Long): Flow<List<Meal>>
+
+
     // Delete a meal
     @Delete
     suspend fun deleteMeal(meal: Meal)

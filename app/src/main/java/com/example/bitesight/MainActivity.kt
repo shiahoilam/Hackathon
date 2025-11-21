@@ -9,6 +9,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.bitesight.data.local.db.AppDatabase
 import kotlinx.coroutines.launch
+import android.content.Intent
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MainActivity : BaseActivity() {
     private lateinit var database: AppDatabase
@@ -32,6 +34,12 @@ class MainActivity : BaseActivity() {
 
         setupBottomNavigation()
         setSelectedNavItem(R.id.nav_home)
+
+        // Add FAB camera button listener
+        findViewById<FloatingActionButton>(R.id.fab_camera).setOnClickListener {
+            startActivity(Intent(this, CameraActivity::class.java))
+            finish()
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -128,8 +136,7 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
-        // Setup Bottom Navigation
-//        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
+      //  val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
        // val fabCamera = findViewById<FloatingActionButton>(R.id.fab_camera)
 
         // Handle bottom navigation item clicks
