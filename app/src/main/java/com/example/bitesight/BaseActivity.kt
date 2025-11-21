@@ -42,6 +42,11 @@ open class BaseActivity : AppCompatActivity() {
                 finish()
                 return true
             }
+            R.id.nav_settings -> {
+                startActivity(Intent(this, SettingsActivity::class.java))
+                finish()
+                return true
+            }
             else -> return false
         }
     }
@@ -52,6 +57,7 @@ open class BaseActivity : AppCompatActivity() {
             R.id.nav_analysis -> this is AnalysisActivity
             R.id.nav_history -> this is MealHistoryActivity
             R.id.nav_camera -> this is CameraActivity
+            R.id.nav_settings -> this is SettingsActivity
             else -> false
         }
     }
