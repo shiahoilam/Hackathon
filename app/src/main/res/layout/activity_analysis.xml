@@ -6,7 +6,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="80dp"
+    android:paddingTop="40dp"
     tools:context=".AnalysisActivity"
     android:background="@drawable/bg_gradient"
     android:fillViewport="true">
@@ -49,6 +49,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Daily"
+            android:textSize="16sp"
             android:textColor="#FFFFFF"
             android:background="@drawable/toggle_button_selected"
             android:textAllCaps="false"/>
@@ -59,6 +60,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Weekly"
+            android:textSize="16sp"
             android:textColor="#5B6B9E"
             android:background="@drawable/toggle_button_unselected"
             android:textAllCaps="false"/>
@@ -69,6 +71,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Monthly"
+            android:textSize="16sp"
             android:textColor="#5B6B9E"
             android:background="@drawable/toggle_button_unselected"
             android:textAllCaps="false"/>
@@ -126,7 +129,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="5 days under goal"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:layout_marginStart="8dp"
                     android:layout_marginEnd="16dp"/>
 
@@ -139,7 +142,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="2 days over by more than 200 kcal"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:layout_marginStart="8dp"/>
             </LinearLayout>
         </LinearLayout>
