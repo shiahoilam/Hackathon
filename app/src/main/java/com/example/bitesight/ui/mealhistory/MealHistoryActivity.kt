@@ -24,7 +24,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import android.widget.ImageButton
 import android.content.Context
-import com.example.bitesight.SettingsActivity // Used to access SharedPreferences constants
+import com.example.bitesight.SettingsActivity
 
 class MealHistoryActivity : BaseActivity(), MealActionListener {
 

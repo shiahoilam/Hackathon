@@ -12,9 +12,13 @@ import kotlinx.coroutines.launch
 import android.content.Intent
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import android.content.Context
+import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class MainActivity : BaseActivity() {
     private lateinit var database: AppDatabase
+
     // TextViews from your XML layout
     private lateinit var tvCurrentCalories: TextView
     private lateinit var tvGoalCalories: TextView
@@ -22,6 +26,10 @@ class MainActivity : BaseActivity() {
     private lateinit var tvProteinValue: TextView
     private lateinit var tvCarbsValue: TextView
     private lateinit var tvFatValue: TextView
+
+    // *** NEW PROPERTIES for Greeting/Date ***
+    private lateinit var tvGreeting: TextView
+    private lateinit var tvCurrentDate: TextView
 
     // Progress bars
     private lateinit var proteinProgressBar: ProgressBar
@@ -34,14 +42,16 @@ class MainActivity : BaseActivity() {
     private val KEY_CALORIE_GOAL = SettingsActivity.KEY_CALORIE_GOAL
     private val DEFAULT_CALORIE_GOAL = SettingsActivity.DEFAULT_CALORIE_GOAL
 
-    // *** FIX: ADDED MISSING MACRO CONSTANTS AS PROPERTIES ***
     private val KEY_PROTEIN_GOAL = SettingsActivity.KEY_PROTEIN_GOAL
     private val KEY_CARBS_GOAL = SettingsActivity.KEY_CARBS_GOAL
     private val KEY_FAT_GOAL = SettingsActivity.KEY_FAT_GOAL
     private val DEFAULT_PROTEIN_GOAL = SettingsActivity.DEFAULT_PROTEIN_GOAL
     private val DEFAULT_CARBS_GOAL = SettingsActivity.DEFAULT_CARBS_GOAL
     private val DEFAULT_FAT_GOAL = SettingsActivity.DEFAULT_FAT_GOAL
-    // ********************************************************
+
+    // *** NEW NAME CONSTANTS ***
+    private val KEY_USER_NAME = SettingsActivity.KEY_USER_NAME
+    private val DEFAULT_USER_NAME = SettingsActivity.DEFAULT_USER_NAME
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,8 +82,17 @@ class MainActivity : BaseActivity() {
         // Setup bottom nav
         setupBottomNavigation()
 
+        // *** SET INITIAL GREETING AND DATE ***
+        displayGreetingAndDate()
+
         // observe database changes and update UI
         observeDatabaseChanges()
+    }
+
+    // *** NEW onResume to ensure name/date updates when returning from Settings ***
+    override fun onResume() {
+        super.onResume()
+        displayGreetingAndDate()
     }
 
     private fun initializeViews() {
@@ -85,11 +104,37 @@ class MainActivity : BaseActivity() {
         tvCarbsValue = findViewById(R.id.carbsValue)
         tvFatValue = findViewById(R.id.fatValue)
 
+        // *** INITIALIZE NEW VIEWS ***
+        tvGreeting = findViewById(R.id.greeting)
+        tvCurrentDate = findViewById(R.id.dateTxt)
+
         // Progress bars
         proteinProgressBar = findViewById(R.id.proteinProgress)
         carbsProgressBar = findViewById(R.id.carbsProgress)
         fatProgressBar = findViewById(R.id.fatProgress)
         circularProgress = findViewById(R.id.circularProgress)
+    }
+
+    private fun displayGreetingAndDate() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val userName = prefs.getString(KEY_USER_NAME, DEFAULT_USER_NAME) ?: DEFAULT_USER_NAME
+
+        val calendar = Calendar.getInstance()
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+
+        // 1. Dynamic Greeting Logic
+        val timeOfDay = when (hour) {
+            in 5..11 -> "Morning"
+            in 12..16 -> "Afternoon"
+            in 17..20 -> "Evening"
+            else -> "Night"
+        }
+
+        tvGreeting.text = "Good $timeOfDay, $userName!"
+
+        // 2. Dynamic Date Logic
+        val dateFormat = SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.getDefault())
+        tvCurrentDate.text = dateFormat.format(calendar.time)
     }
 
     private fun observeDatabaseChanges() {
@@ -127,7 +172,6 @@ class MainActivity : BaseActivity() {
             database.mealDao().getTodayTotalProtein().collect { currentProtein ->
                 runOnUiThread {
                     tvProteinValue.text = "${currentProtein.toInt()}/${goalProtein.toInt()}g"
-                    // Check for zero goal to prevent division by zero
                     val proteinProgress = if (goalProtein > 0) ((currentProtein / goalProtein) * 100).toInt().coerceIn(0, 100) else 0
                     proteinProgressBar.progress = proteinProgress
                 }
@@ -139,7 +183,6 @@ class MainActivity : BaseActivity() {
             database.mealDao().getTodayTotalCarbs().collect { currentCarbs ->
                 runOnUiThread {
                     tvCarbsValue.text = "${currentCarbs.toInt()}/${goalCarbs.toInt()}g"
-                    // Check for zero goal to prevent division by zero
                     val carbsProgress = if (goalCarbs > 0) ((currentCarbs / goalCarbs) * 100).toInt().coerceIn(0, 100) else 0
                     carbsProgressBar.progress = carbsProgress
                 }
@@ -151,7 +194,6 @@ class MainActivity : BaseActivity() {
             database.mealDao().getTodayTotalFat().collect { currentFat ->
                 runOnUiThread {
                     tvFatValue.text = "${currentFat.toInt()}/${goalFat.toInt()}g"
-                    // Check for zero goal to prevent division by zero
                     val fatProgress = if (goalFat > 0) ((currentFat / goalFat) * 100).toInt().coerceIn(0, 100) else 0
                     fatProgressBar.progress = fatProgress
                 }

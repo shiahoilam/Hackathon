@@ -35,6 +35,27 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:text="Your Name"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <EditText
+                android:id="@+id/etUserName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g., Alex"
+                android:inputType="textCapWords"
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/gray_text"
+                android:backgroundTint="@color/gray_text"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:layout_marginBottom="24dp"/>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:text="Daily Calorie Goal (kcal)"
                 android:textColor="@android:color/white"
                 android:textSize="18sp"
@@ -64,6 +85,7 @@
 
             <TextView
                 android:layout_width="match_parent"
+                android_contentDescription="Protein Goal (g)"
                 android:layout_height="wrap_content"
                 android:text="Protein Goal (g)"
                 android:textColor="@color/protein_blue"
