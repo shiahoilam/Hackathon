@@ -19,7 +19,6 @@ import java.util.Locale
 class MainActivity : BaseActivity() {
     private lateinit var database: AppDatabase
 
-    // TextViews from your XML layout
     private lateinit var tvCurrentCalories: TextView
     private lateinit var tvGoalCalories: TextView
     private lateinit var tvRemainingCalories: TextView
@@ -27,17 +26,14 @@ class MainActivity : BaseActivity() {
     private lateinit var tvCarbsValue: TextView
     private lateinit var tvFatValue: TextView
 
-    // *** NEW PROPERTIES for Greeting/Date ***
     private lateinit var tvGreeting: TextView
     private lateinit var tvCurrentDate: TextView
 
-    // Progress bars
     private lateinit var proteinProgressBar: ProgressBar
     private lateinit var carbsProgressBar: ProgressBar
     private lateinit var fatProgressBar: ProgressBar
     private lateinit var circularProgress: CircularProgressView
 
-    // Constants retrieved from SettingsActivity for consistent access to SharedPreferences
     private val PREFS_NAME = SettingsActivity.PREFS_NAME
     private val KEY_CALORIE_GOAL = SettingsActivity.KEY_CALORIE_GOAL
     private val DEFAULT_CALORIE_GOAL = SettingsActivity.DEFAULT_CALORIE_GOAL
@@ -49,7 +45,6 @@ class MainActivity : BaseActivity() {
     private val DEFAULT_CARBS_GOAL = SettingsActivity.DEFAULT_CARBS_GOAL
     private val DEFAULT_FAT_GOAL = SettingsActivity.DEFAULT_FAT_GOAL
 
-    // *** NEW NAME CONSTANTS ***
     private val KEY_USER_NAME = SettingsActivity.KEY_USER_NAME
     private val DEFAULT_USER_NAME = SettingsActivity.DEFAULT_USER_NAME
 
@@ -61,7 +56,6 @@ class MainActivity : BaseActivity() {
         setupBottomNavigation()
         setSelectedNavItem(R.id.nav_home)
 
-        // Add FAB camera button listener
         findViewById<FloatingActionButton>(R.id.fab_camera).setOnClickListener {
             startActivity(Intent(this, CameraActivity::class.java))
             finish()
@@ -73,42 +67,31 @@ class MainActivity : BaseActivity() {
             insets
         }
 
-        // Initialize database
         database = AppDatabase.getDatabase(this)
 
-        // Initialize Views
         initializeViews()
 
-        // Setup bottom nav
         setupBottomNavigation()
 
-        // *** SET INITIAL GREETING AND DATE ***
         displayGreetingAndDate()
 
-        // observe database changes and update UI
         observeDatabaseChanges()
     }
 
-    // *** NEW onResume to ensure name/date updates when returning from Settings ***
     override fun onResume() {
         super.onResume()
         displayGreetingAndDate()
     }
 
     private fun initializeViews() {
-        // TextViews
         tvCurrentCalories = findViewById(R.id.currentCalories)
         tvGoalCalories = findViewById(R.id.goalCalories)
         tvRemainingCalories = findViewById(R.id.remainingCalories)
         tvProteinValue = findViewById(R.id.proteinValue)
         tvCarbsValue = findViewById(R.id.carbsValue)
         tvFatValue = findViewById(R.id.fatValue)
-
-        // *** INITIALIZE NEW VIEWS ***
         tvGreeting = findViewById(R.id.greeting)
         tvCurrentDate = findViewById(R.id.dateTxt)
-
-        // Progress bars
         proteinProgressBar = findViewById(R.id.proteinProgress)
         carbsProgressBar = findViewById(R.id.carbsProgress)
         fatProgressBar = findViewById(R.id.fatProgress)
@@ -122,7 +105,6 @@ class MainActivity : BaseActivity() {
         val calendar = Calendar.getInstance()
         val hour = calendar.get(Calendar.HOUR_OF_DAY)
 
-        // 1. Dynamic Greeting Logic
         val timeOfDay = when (hour) {
             in 5..11 -> "Morning"
             in 12..16 -> "Afternoon"
@@ -131,22 +113,17 @@ class MainActivity : BaseActivity() {
         }
 
         tvGreeting.text = "Good $timeOfDay, $userName!"
-
-        // 2. Dynamic Date Logic
         val dateFormat = SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.getDefault())
         tvCurrentDate.text = dateFormat.format(calendar.time)
     }
 
     private fun observeDatabaseChanges() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-        // Retrieve dynamic goals from SharedPreferences
         val goalCalories = prefs.getInt(KEY_CALORIE_GOAL, DEFAULT_CALORIE_GOAL)
         val goalProtein = prefs.getInt(KEY_PROTEIN_GOAL, DEFAULT_PROTEIN_GOAL).toFloat()
         val goalCarbs = prefs.getInt(KEY_CARBS_GOAL, DEFAULT_CARBS_GOAL).toFloat()
         val goalFat = prefs.getInt(KEY_FAT_GOAL, DEFAULT_FAT_GOAL).toFloat()
 
-        // Observe today's total calories
         lifecycleScope.launch {
             database.mealDao().getTodayTotalCalories().collect { currentCalories ->
                 val remaining = goalCalories - currentCalories
@@ -160,14 +137,12 @@ class MainActivity : BaseActivity() {
                         "${Math.abs(remaining)} cal over"
                     }
 
-                    // Update circular progress
                     val progress = currentCalories.toFloat() / goalCalories
                     circularProgress.setProgress(progress)
                 }
             }
         }
 
-        // Observe today's protein
         lifecycleScope.launch {
             database.mealDao().getTodayTotalProtein().collect { currentProtein ->
                 runOnUiThread {
@@ -178,7 +153,6 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        // Observe today's carbs
         lifecycleScope.launch {
             database.mealDao().getTodayTotalCarbs().collect { currentCarbs ->
                 runOnUiThread {
@@ -189,7 +163,6 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        // Observe today's fat
         lifecycleScope.launch {
             database.mealDao().getTodayTotalFat().collect { currentFat ->
                 runOnUiThread {

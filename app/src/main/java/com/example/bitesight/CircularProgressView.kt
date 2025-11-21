@@ -14,7 +14,7 @@ class CircularProgressView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private var progress: Float = 0.82f // 82% filled
+    private var progress: Float = 0.82f
     private val strokeWidth = 20f
 
     private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -46,17 +46,10 @@ class CircularProgressView @JvmOverloads constructor(
             centerY + radius
         )
 
-        // Draw background circle
         canvas.drawCircle(centerX, centerY, radius, backgroundPaint)
-
-        // Draw progress arc with gradient effect
         val sweepAngle = 360 * progress
-
-        // Create gradient from green to yellow
         val greenColor = Color.parseColor("#4CAF50")
         val yellowColor = Color.parseColor("#FFC107")
-
-        // Simple color interpolation based on progress
         val red = (Color.red(greenColor) + (Color.red(yellowColor) - Color.red(greenColor)) * progress).toInt()
         val green = (Color.green(greenColor) + (Color.green(yellowColor) - Color.green(greenColor)) * progress).toInt()
         val blue = (Color.blue(greenColor) + (Color.blue(yellowColor) - Color.blue(greenColor)) * progress).toInt()

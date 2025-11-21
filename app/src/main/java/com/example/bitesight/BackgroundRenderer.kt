@@ -8,7 +8,6 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
-// Standard ARCore background renderer
 class BackgroundRenderer {
     private lateinit var quadVertices: FloatBuffer
     private lateinit var quadTexCoord: FloatBuffer
@@ -32,13 +31,11 @@ class BackgroundRenderer {
         1.0f, 0.0f
     )
 
-    // --- ADDED THIS FUNCTION ---
     fun getTextureId(): Int {
         return textureId
     }
 
     fun createOnGlThread(context: Context) {
-        // Create texture
         val textures = IntArray(1)
         GLES20.glGenTextures(1, textures, 0)
         textureId = textures[0]
@@ -48,7 +45,6 @@ class BackgroundRenderer {
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST)
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST)
 
-        // Create buffers
         val bbVertices = ByteBuffer.allocateDirect(QUAD_COORDS.size * 4)
         bbVertices.order(ByteOrder.nativeOrder())
         quadVertices = bbVertices.asFloatBuffer()
@@ -61,7 +57,6 @@ class BackgroundRenderer {
         quadTexCoord.put(QUAD_TEXCOORDS)
         quadTexCoord.position(0)
 
-        // Shaders
         val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER_CODE)
         val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER_CODE)
         program = GLES20.glCreateProgram()

@@ -13,7 +13,6 @@
         android:layout_height="wrap_content"
         android:paddingBottom="100dp">
 
-        <!-- GREETING -->
         <TextView
             android:id="@+id/greeting"
             android:layout_width="wrap_content"
@@ -39,7 +38,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/greeting" />
 
-        <!-- Today's Nutrition Card -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/todayCard"
             android:layout_width="0dp"
@@ -72,7 +70,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- CIRCULAR PROGRESS SECTION -->
         <com.example.bitesight.CircularProgressView
             android:id="@+id/circularProgress"
             android:layout_width="240dp"
@@ -82,7 +79,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
 
-        <!-- CENTER TEXT IN CIRCLE -->
         <LinearLayout
             android:id="@+id/calorieTextContainer"
             android:layout_width="wrap_content"
@@ -118,7 +114,6 @@
                 android:textSize="28sp"/>
         </LinearLayout>
 
-        <!-- REMAINING CALORIES TEXT -->
         <TextView
             android:id="@+id/remainingCalories"
             android:layout_width="wrap_content"
@@ -132,7 +127,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
 
-        <!-- MACROS SECTION -->
         <TextView
             android:id="@+id/macrosTitle"
             android:layout_width="wrap_content"
@@ -146,7 +140,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/remainingCalories"/>
 
-        <!-- Add this subtitle RIGHT AFTER macrosTitle -->
         <TextView
             android:id="@+id/macrosSubtitle"
             android:layout_width="wrap_content"
@@ -159,7 +152,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/macrosTitle"/>
 
-        <!-- PROTEIN BAR -->
         <TextView
             android:id="@+id/proteinLabel"
             android:layout_width="80dp"
@@ -198,7 +190,6 @@
             app:layout_constraintTop_toTopOf="@id/proteinLabel"
             app:layout_constraintBottom_toBottomOf="@id/proteinLabel"/>
 
-        <!-- CARBS BAR -->
         <TextView
             android:id="@+id/carbsLabel"
             android:layout_width="80dp"
@@ -237,7 +228,6 @@
             app:layout_constraintTop_toTopOf="@id/carbsLabel"
             app:layout_constraintBottom_toBottomOf="@id/carbsLabel"/>
 
-        <!-- FAT BAR -->
         <TextView
             android:id="@+id/fatLabel"
             android:layout_width="80dp"
@@ -276,7 +266,6 @@
             app:layout_constraintTop_toTopOf="@id/fatLabel"
             app:layout_constraintBottom_toBottomOf="@id/fatLabel"/>
 
-        <!-- WEEKLY PROGRESS CARD -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/weeklyCard"
             android:layout_width="0dp"
@@ -338,8 +327,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Bottom Navigation -->
-<!--        android:id="@+id/bottomNavigationView"-->
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/bottom_navigation"
             android:layout_width="0dp"
@@ -353,7 +340,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
 
-<!--         Floating Camera Button -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_camera"
             android:layout_width="wrap_content"

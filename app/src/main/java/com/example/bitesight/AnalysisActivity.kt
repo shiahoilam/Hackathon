@@ -25,22 +25,13 @@ class AnalysisActivity : BaseActivity() {
     private lateinit var btnMonthly: Button
 
     private var currentTimeline = Timeline.DAILY
-    private val calorieGoal = 2000 // You can make this dynamic later
+    private val calorieGoal = 2000
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
         setContentView(R.layout.activity_analysis)
-
-        // Setup bottom navigation
         setupBottomNavigation()
         setSelectedNavItem(R.id.nav_analysis)
-
-//        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-//            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-//            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-//            insets
-//        }
 
         initViews()
         setupToggleButtons()
@@ -73,7 +64,6 @@ class AnalysisActivity : BaseActivity() {
     private fun selectTimeline(timeline: Timeline, selectedButton: Button) {
         currentTimeline = timeline
 
-        // Reset all buttons
         btnDaily.setBackgroundResource(R.drawable.toggle_button_unselected)
         btnDaily.setTextColor(Color.parseColor("#5B6B9E"))
 
@@ -83,11 +73,8 @@ class AnalysisActivity : BaseActivity() {
         btnMonthly.setBackgroundResource(R.drawable.toggle_button_unselected)
         btnMonthly.setTextColor(Color.parseColor("#5B6B9E"))
 
-        // Highlight selected button
         selectedButton.setBackgroundResource(R.drawable.toggle_button_selected)
         selectedButton.setTextColor(Color.WHITE)
-
-        // Load data for selected timeline
         loadChartData(timeline)
     }
 
@@ -101,7 +88,6 @@ class AnalysisActivity : BaseActivity() {
             setDrawGridBackground(false)
             legend.isEnabled = false
 
-            // X-axis
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
@@ -109,14 +95,12 @@ class AnalysisActivity : BaseActivity() {
                 granularity = 1f
             }
 
-            // Left Y-axis
             axisLeft.apply {
                 textColor = Color.parseColor("#1C1B1F")
                 setDrawGridLines(true)
                 gridColor = Color.parseColor("#E0E0E0")
             }
 
-            // Right Y-axis
             axisRight.isEnabled = false
         }
     }
@@ -124,7 +108,6 @@ class AnalysisActivity : BaseActivity() {
     private fun loadChartData(timeline: Timeline) {
         lifecycleScope.launch {
             val meals = withContext(Dispatchers.IO) {
-                // Get your database instance and fetch meals
                 val db = AppDatabase.getDatabase(applicationContext)
                 db.mealDao().getAllMeals()
             }
@@ -140,7 +123,6 @@ class AnalysisActivity : BaseActivity() {
 
         when (timeline) {
             Timeline.DAILY -> {
-                // Group by day of week (last 7 days)
                 val dateFormat = SimpleDateFormat("EEE", Locale.getDefault())
 
                 for (i in 0..6) {
@@ -158,7 +140,6 @@ class AnalysisActivity : BaseActivity() {
             }
 
             Timeline.WEEKLY -> {
-                // Group by week (last 12 weeks)
                 for (i in 0..11) {
                     calendar.timeInMillis = System.currentTimeMillis()
                     calendar.add(Calendar.WEEK_OF_YEAR, -i)
@@ -174,7 +155,6 @@ class AnalysisActivity : BaseActivity() {
             }
 
             Timeline.MONTHLY -> {
-                // Group by month (last 12 months)
                 val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
 
                 for (i in 0..11) {
@@ -192,7 +172,6 @@ class AnalysisActivity : BaseActivity() {
             }
         }
 
-        // Convert to data points
         return dataMap.map { (label, mealList) ->
             val totalCalories = mealList.sumOf { it.calories }
             val avgCalories = if (mealList.isNotEmpty()) totalCalories / mealList.size else 0
@@ -207,7 +186,6 @@ class AnalysisActivity : BaseActivity() {
 
         val labels = dataPoints.map { it.label }
 
-        // Create dataset
         val dataSet = LineDataSet(entries, "Calories").apply {
             color = Color.parseColor("#8B7FB8")
             setCircleColor(Color.parseColor("#8B7FB8"))
@@ -218,7 +196,6 @@ class AnalysisActivity : BaseActivity() {
             cubicIntensity = 0.2f
         }
 
-        // Add goal line
         val goalEntries = dataPoints.mapIndexed { index, _ ->
             Entry(index.toFloat(), calorieGoal.toFloat())
         }
@@ -234,7 +211,6 @@ class AnalysisActivity : BaseActivity() {
         val lineData = LineData(dataSet, goalDataSet)
         calorieChart.data = lineData
 
-        // Set X-axis labels
         calorieChart.xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
                 return if (value.toInt() < labels.size) {
@@ -243,6 +219,6 @@ class AnalysisActivity : BaseActivity() {
             }
         }
 
-        calorieChart.invalidate() // Refresh chart
+        calorieChart.invalidate()
     }
 }

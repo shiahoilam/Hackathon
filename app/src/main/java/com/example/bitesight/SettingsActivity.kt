@@ -14,18 +14,14 @@ class SettingsActivity : BaseActivity() {
     private lateinit var etFatGoal: EditText
     private lateinit var btnSaveGoal: Button
 
-    // *** NEW PROPERTY ***
     private lateinit var etUserName: EditText
 
-    // Constant keys for SharedPreferences
     companion object {
         const val PREFS_NAME = "BiteSightPrefs"
         const val KEY_CALORIE_GOAL = "calorieGoal"
         const val KEY_PROTEIN_GOAL = "proteinGoal"
         const val KEY_CARBS_GOAL = "carbsGoal"
         const val KEY_FAT_GOAL = "fatGoal"
-
-        // *** NEW NAME KEYS ***
         const val KEY_USER_NAME = "userName"
         const val DEFAULT_USER_NAME = "User"
 
@@ -38,14 +34,12 @@ class SettingsActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
-
-        // Initialize Views including new name field
         etCalorieGoal = findViewById(R.id.etCalorieGoal)
         etProteinGoal = findViewById(R.id.etProteinGoal)
         etCarbsGoal = findViewById(R.id.etCarbsGoal)
         etFatGoal = findViewById(R.id.etFatGoal)
         btnSaveGoal = findViewById(R.id.btnSaveGoal)
-        etUserName = findViewById(R.id.etUserName) // Initialize the new view
+        etUserName = findViewById(R.id.etUserName)
 
         setupBottomNavigation()
         setSelectedNavItem(R.id.nav_settings)
@@ -57,10 +51,7 @@ class SettingsActivity : BaseActivity() {
     private fun loadGoals() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-        // Load name
         etUserName.setText(prefs.getString(KEY_USER_NAME, DEFAULT_USER_NAME))
-
-        // Load Macro Goals
         etCalorieGoal.setText(prefs.getInt(KEY_CALORIE_GOAL, DEFAULT_CALORIE_GOAL).toString())
         etProteinGoal.setText(prefs.getInt(KEY_PROTEIN_GOAL, DEFAULT_PROTEIN_GOAL).toString())
         etCarbsGoal.setText(prefs.getInt(KEY_CARBS_GOAL, DEFAULT_CARBS_GOAL).toString())
@@ -78,7 +69,6 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun saveAllGoals(): Boolean {
-        // Validate and parse all inputs
         val userName = etUserName.text.toString().trim()
         val calorie = etCalorieGoal.text.toString().toIntOrNull()
         val protein = etProteinGoal.text.toString().toIntOrNull()
@@ -87,15 +77,11 @@ class SettingsActivity : BaseActivity() {
 
         if (userName.isEmpty() || calorie == null || protein == null || carbs == null || fat == null ||
             calorie <= 0 || protein <= 0 || carbs <= 0 || fat <= 0) {
-            return false // Validation failed
+            return false
         }
 
-        // Save to SharedPreferences
         getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
-            // Save Name
             putString(KEY_USER_NAME, userName)
-
-            // Save Macro Goals
             putInt(KEY_CALORIE_GOAL, calorie)
             putInt(KEY_PROTEIN_GOAL, protein)
             putInt(KEY_CARBS_GOAL, carbs)

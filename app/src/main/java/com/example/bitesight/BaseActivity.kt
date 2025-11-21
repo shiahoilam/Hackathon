@@ -16,7 +16,6 @@ open class BaseActivity : AppCompatActivity() {
     }
 
     private fun handleNavigation(itemId: Int): Boolean {
-        // Don't navigate if already on that page
         if (isCurrentActivity(itemId)) {
             return true
         }
