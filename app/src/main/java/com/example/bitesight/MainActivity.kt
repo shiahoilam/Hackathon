@@ -171,7 +171,7 @@ class MainActivity : BaseActivity() {
         lifecycleScope.launch {
             database.mealDao().getTodayTotalProtein().collect { currentProtein ->
                 runOnUiThread {
-                    tvProteinValue.text = "${currentProtein.toInt()}/${goalProtein.toInt()}g"
+                    tvProteinValue.text = String.format("%.1f/%.1fg", currentProtein, goalProtein)
                     val proteinProgress = if (goalProtein > 0) ((currentProtein / goalProtein) * 100).toInt().coerceIn(0, 100) else 0
                     proteinProgressBar.progress = proteinProgress
                 }
@@ -182,7 +182,7 @@ class MainActivity : BaseActivity() {
         lifecycleScope.launch {
             database.mealDao().getTodayTotalCarbs().collect { currentCarbs ->
                 runOnUiThread {
-                    tvCarbsValue.text = "${currentCarbs.toInt()}/${goalCarbs.toInt()}g"
+                    tvCarbsValue.text = String.format("%.1f/%.1fg", currentCarbs, goalCarbs)
                     val carbsProgress = if (goalCarbs > 0) ((currentCarbs / goalCarbs) * 100).toInt().coerceIn(0, 100) else 0
                     carbsProgressBar.progress = carbsProgress
                 }
@@ -193,7 +193,7 @@ class MainActivity : BaseActivity() {
         lifecycleScope.launch {
             database.mealDao().getTodayTotalFat().collect { currentFat ->
                 runOnUiThread {
-                    tvFatValue.text = "${currentFat.toInt()}/${goalFat.toInt()}g"
+                    tvFatValue.text = String.format("%.1f/%.1fg", currentFat, goalFat)
                     val fatProgress = if (goalFat > 0) ((currentFat / goalFat) * 100).toInt().coerceIn(0, 100) else 0
                     fatProgressBar.progress = fatProgress
                 }
