@@ -6,6 +6,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:paddingTop="60dp"
     tools:context=".CameraActivity"
     android:background="@drawable/bg_gradient">
 
@@ -34,17 +35,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <TextView
-        android:id="@+id/cameraTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Food Scanner (AR Depth)"
-        android:textColor="@android:color/white"
-        android:textSize="18sp"
-        android:layout_marginStart="16dp"
-        app:layout_constraintTop_toTopOf="@id/toolbar"
-        app:layout_constraintBottom_toBottomOf="@id/toolbar"
-        app:layout_constraintStart_toStartOf="@id/toolbar" />
+<!--    <TextView-->
+<!--        android:id="@+id/cameraTitle"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="Food Scanner (AR Depth)"-->
+<!--        android:textColor="@android:color/white"-->
+<!--        android:textSize="18sp"-->
+<!--        android:layout_marginStart="16dp"-->
+<!--        app:layout_constraintTop_toTopOf="@id/toolbar"-->
+<!--        app:layout_constraintBottom_toBottomOf="@id/toolbar"-->
+<!--        app:layout_constraintStart_toStartOf="@id/toolbar" />-->
 
     <ImageButton
         android:id="@+id/backButton"
@@ -101,7 +102,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="100dp">
+        android:layout_marginTop="08dp">
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
@@ -228,6 +229,7 @@
                                     android:progressTint="#FFFFFF" />
 
                                 <TextView
+                                    android:id="@+id/overlayProteinPercent"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="83%"
@@ -283,6 +285,7 @@
                                     android:progressTint="#FFFFFF" />
 
                                 <TextView
+                                    android:id="@+id/overlayCarbsPercent"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="50%"
@@ -329,6 +332,7 @@
                                     android:progressTint="#FFFFFF" />
 
                                 <TextView
+                                    android:id="@+id/overlayFatPercent"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="63%"

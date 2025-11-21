@@ -70,7 +70,11 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     private lateinit var overlayProteinProgress: ProgressBar
     private lateinit var overlayCarbsProgress: ProgressBar
     private lateinit var overlayFatProgress: ProgressBar
+    private lateinit var overlayProteinPercent: TextView
+    private lateinit var overlayCarbsPercent: TextView
+    private lateinit var overlayFatPercent: TextView
     private lateinit var overlayFoodImage: ImageView
+    private lateinit var overlayFoodItems: LinearLayout
     private lateinit var database: AppDatabase
 
     private var session: Session? = null
@@ -82,6 +86,8 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
     // Store latest detection results for capture
     private var latestDetectionResults: List<DetectionResult> = emptyList()
+    // Store current overlay detection results (what's shown on screen)
+    private var currentOverlayResults: List<DetectionResult> = emptyList()
     private val captureRequested = AtomicBoolean(false)
 
     private var isOverlayVisible = false
@@ -222,13 +228,19 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         database = AppDatabase.getDatabase(this)
 
         swipeIndicator = findViewById(R.id.swipeIndicator)
+        swipeIndicator.isClickable = true
+        swipeIndicator.isFocusable = true
         analysisOverlay = findViewById(R.id.analysisOverlay)
         addToTrackerButton = findViewById(R.id.addToTrackerButton)
         overlayCalories = findViewById(R.id.overlayCalories)
         overlayProteinProgress = findViewById(R.id.overlayProteinProgress)
         overlayCarbsProgress = findViewById(R.id.overlayCarbsProgress)
         overlayFatProgress = findViewById(R.id.overlayFatProgress)
+        overlayProteinPercent = findViewById(R.id.overlayProteinPercent)
+        overlayCarbsPercent = findViewById(R.id.overlayCarbsPercent)
+        overlayFatPercent = findViewById(R.id.overlayFatPercent)
         overlayFoodImage = findViewById(R.id.overlayFoodImage)
+        overlayFoodItems = findViewById(R.id.overlayFoodItems)
 
         findViewById<View>(R.id.backButton).setOnClickListener { finish() }
 
@@ -349,7 +361,15 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
                     if (cameraImage != null) {
                         isDetecting.set(true)
                         val intrinsics = frame.camera.imageIntrinsics
-                        detectionExecutor.execute { processImage(cameraImage, depthImage, intrinsics) }
+                        
+                        // Check if capture is requested
+                        if (captureRequested.getAndSet(false)) {
+                            // Save and process the captured image
+                            detectionExecutor.execute { saveCapturedImage(cameraImage, depthImage, intrinsics) }
+                        } else {
+                            // Normal detection processing
+                            detectionExecutor.execute { processImage(cameraImage, depthImage, intrinsics) }
+                        }
                     }
                 } catch (e: Exception) {
                     isDetecting.set(false)
@@ -402,7 +422,12 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
             }
 
             depthImage?.close()
-            runOnUiThread { detectionOverlay.setDetectionResults(finalResults) }
+            
+            // Store current results for capture when swiping up
+            runOnUiThread {
+                currentOverlayResults = finalResults
+                detectionOverlay.setDetectionResults(finalResults)
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Detection failed", e)
@@ -545,30 +570,45 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     private fun setupSwipeGesture() {
         var initialY = 0f
         var initialX = 0f
+        var isSwipeStarted = false
 
         val touchListener = View.OnTouchListener { view, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialY = event.y
                     initialX = event.x
+                    isSwipeStarted = false
                     true
                 }
-                MotionEvent.ACTION_UP -> {
+                MotionEvent.ACTION_MOVE -> {
                     val deltaY = initialY - event.y
                     val deltaX = initialX - event.x
+                    
+                    // Check if movement is significant enough to be considered a swipe
+                    if (Math.abs(deltaY) > 10 || Math.abs(deltaX) > 10) {
+                        isSwipeStarted = true
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (isSwipeStarted) {
+                        val deltaY = initialY - event.y
+                        val deltaX = initialX - event.x
 
-                    // Check if it's a vertical swipe (not horizontal)
-                    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > swipeThreshold) {
-                        if (deltaY > 0 && !isOverlayVisible) {
-                            // Swipe up detected - capture photo first
-                            captureImage()
-                            return@OnTouchListener true
-                        } else if (deltaY < 0 && isOverlayVisible) {
-                            // Swipe down detected
-                            hideOverlay()
-                            return@OnTouchListener true
+                        // Check if it's a vertical swipe (not horizontal)
+                        if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > swipeThreshold) {
+                            if (deltaY > 0 && !isOverlayVisible) {
+                                // Swipe up detected - capture photo first
+                                captureImage()
+                                return@OnTouchListener true
+                            } else if (deltaY < 0 && isOverlayVisible) {
+                                // Swipe down detected
+                                hideOverlay()
+                                return@OnTouchListener true
+                            }
                         }
                     }
+                    isSwipeStarted = false
                     false
                 }
                 else -> false
@@ -623,6 +663,11 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         if (session == null) {
             Toast.makeText(this, "AR Camera not ready", Toast.LENGTH_SHORT).show()
             return
+        }
+
+        // Capture current overlay results before requesting frame capture
+        if (currentOverlayResults.isNotEmpty()) {
+            latestDetectionResults = currentOverlayResults
         }
 
         // Request capture - the next frame will be captured
@@ -681,15 +726,28 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
             capturedImagePath = photoFile.absolutePath
             capturedTimestamp = System.currentTimeMillis()
-            latestDetectionResults = finalResults
+            
+            // Use processed results, or fallback to current overlay results if empty
+            latestDetectionResults = if (finalResults.isNotEmpty()) {
+                finalResults
+            } else if (currentOverlayResults.isNotEmpty()) {
+                currentOverlayResults
+            } else {
+                emptyList()
+            }
 
             depthImage?.close()
             cameraImage.close()
 
             runOnUiThread {
                 displayCapturedImage(photoFile)
-                updateNutritionalData()
-                showOverlay()
+                if (latestDetectionResults.isNotEmpty()) {
+                    updateNutritionalData()
+                    populateBreakdown()
+                    showOverlay()
+                } else {
+                    Toast.makeText(this@CameraActivity, "No food detected in captured image", Toast.LENGTH_SHORT).show()
+                }
             }
 
         } catch (e: Exception) {
@@ -778,6 +836,82 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         overlayProteinProgress.progress = proteinPercent
         overlayCarbsProgress.progress = carbsPercent
         overlayFatProgress.progress = fatPercent
+        
+        // Update percentage labels
+        overlayProteinPercent.text = "$proteinPercent%"
+        overlayCarbsPercent.text = "$carbsPercent%"
+        overlayFatPercent.text = "$fatPercent%"
+    }
+
+    private fun populateBreakdown() {
+        // Clear existing items (remove static items from layout)
+        overlayFoodItems.removeAllViews()
+
+        // Add each detected food item to the breakdown
+        latestDetectionResults.forEach { result ->
+            val info = foodDatabase[result.foodName.lowercase()] ?: foodDatabase["other ingredients"]!!
+            val weight = if (result.weightGrams > 0) result.weightGrams.toFloat() else 100f
+            val protein = info.protein * (weight / 100f)
+            val carbs = info.carbs * (weight / 100f)
+            val fat = info.fat * (weight / 100f)
+
+            // Convert dp to pixels
+            val dp8 = (8 * resources.displayMetrics.density).toInt()
+            val dp16 = (16 * resources.displayMetrics.density).toInt()
+
+            // Create card view for each food item
+            val cardView = androidx.cardview.widget.CardView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 0, 0, dp8)
+                }
+                radius = 8 * resources.displayMetrics.density
+                cardElevation = 2 * resources.displayMetrics.density
+                setCardBackgroundColor(0xFF2C2C2C.toInt())
+            }
+
+            // Create inner layout
+            val innerLayout = LinearLayout(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(dp16, dp16, dp16, dp16)
+            }
+
+            // Food name
+            val foodNameText = TextView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                )
+                text = result.foodName
+                setTextColor(0xFFFFFFFF.toInt())
+                textSize = 16f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            }
+
+            // Nutritional info text
+            val nutritionText = TextView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                text = "${result.calories} kcal | Protein: ${String.format("%.1f", protein)}g | Carbs: ${String.format("%.1f", carbs)}g | Fat: ${String.format("%.1f", fat)}g"
+                setTextColor(0xFFCCCCCC.toInt())
+                textSize = 12f
+            }
+
+            innerLayout.addView(foodNameText)
+            innerLayout.addView(nutritionText)
+            cardView.addView(innerLayout)
+            overlayFoodItems.addView(cardView)
+        }
     }
 
     private fun saveMealsToTracker() {
