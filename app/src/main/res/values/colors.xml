@@ -16,7 +16,7 @@
 
     <!-- Progress Colors -->
     <color name="progress_green">#4CAF50</color>
-
+    <color name="warning_color">#FFC107</color>
     <!-- Background Colors -->
 
     <color name="purple_200">#BB86FC</color>

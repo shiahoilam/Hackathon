@@ -11,6 +11,7 @@ import com.example.bitesight.data.local.db.AppDatabase
 import kotlinx.coroutines.launch
 import android.content.Intent
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import android.content.Context
 
 class MainActivity : BaseActivity() {
     private lateinit var database: AppDatabase
@@ -27,6 +28,21 @@ class MainActivity : BaseActivity() {
     private lateinit var carbsProgressBar: ProgressBar
     private lateinit var fatProgressBar: ProgressBar
     private lateinit var circularProgress: CircularProgressView
+
+    // Constants retrieved from SettingsActivity for consistent access to SharedPreferences
+    private val PREFS_NAME = SettingsActivity.PREFS_NAME
+    private val KEY_CALORIE_GOAL = SettingsActivity.KEY_CALORIE_GOAL
+    private val DEFAULT_CALORIE_GOAL = SettingsActivity.DEFAULT_CALORIE_GOAL
+
+    // *** FIX: ADDED MISSING MACRO CONSTANTS AS PROPERTIES ***
+    private val KEY_PROTEIN_GOAL = SettingsActivity.KEY_PROTEIN_GOAL
+    private val KEY_CARBS_GOAL = SettingsActivity.KEY_CARBS_GOAL
+    private val KEY_FAT_GOAL = SettingsActivity.KEY_FAT_GOAL
+    private val DEFAULT_PROTEIN_GOAL = SettingsActivity.DEFAULT_PROTEIN_GOAL
+    private val DEFAULT_CARBS_GOAL = SettingsActivity.DEFAULT_CARBS_GOAL
+    private val DEFAULT_FAT_GOAL = SettingsActivity.DEFAULT_FAT_GOAL
+    // ********************************************************
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -60,235 +76,86 @@ class MainActivity : BaseActivity() {
         observeDatabaseChanges()
     }
 
-        private fun initializeViews() {
-            // TextViews
-            tvCurrentCalories = findViewById(R.id.currentCalories)
-            tvGoalCalories = findViewById(R.id.goalCalories)
-            tvRemainingCalories = findViewById(R.id.remainingCalories)
-            tvProteinValue = findViewById(R.id.proteinValue)
-            tvCarbsValue = findViewById(R.id.carbsValue)
-            tvFatValue = findViewById(R.id.fatValue)
+    private fun initializeViews() {
+        // TextViews
+        tvCurrentCalories = findViewById(R.id.currentCalories)
+        tvGoalCalories = findViewById(R.id.goalCalories)
+        tvRemainingCalories = findViewById(R.id.remainingCalories)
+        tvProteinValue = findViewById(R.id.proteinValue)
+        tvCarbsValue = findViewById(R.id.carbsValue)
+        tvFatValue = findViewById(R.id.fatValue)
 
-            // Progress bars
-            proteinProgressBar = findViewById(R.id.proteinProgress)
-            carbsProgressBar = findViewById(R.id.carbsProgress)
-            fatProgressBar = findViewById(R.id.fatProgress)
-            circularProgress = findViewById(R.id.circularProgress)
-        }
-        private fun observeDatabaseChanges() {
-            // User goals (hardcoded for now - later from settings)
-            val goalCalories = 2000
-            val goalProtein = 60f
-            val goalCarbs = 200f
-            val goalFat = 65f
+        // Progress bars
+        proteinProgressBar = findViewById(R.id.proteinProgress)
+        carbsProgressBar = findViewById(R.id.carbsProgress)
+        fatProgressBar = findViewById(R.id.fatProgress)
+        circularProgress = findViewById(R.id.circularProgress)
+    }
 
-            // Observe today's total calories
-            lifecycleScope.launch {
-                database.mealDao().getTodayTotalCalories().collect { currentCalories ->
-                    val remaining = goalCalories - currentCalories
+    private fun observeDatabaseChanges() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-                    runOnUiThread {
-                        tvCurrentCalories.text = String.format("%,d", currentCalories)
-                        tvGoalCalories.text = String.format("%,d", goalCalories)
-                        tvRemainingCalories.text = if (remaining >= 0) {
-                            "$remaining cal remaining"
-                        } else {
-                            "${Math.abs(remaining)} cal over"
-                        }
+        // Retrieve dynamic goals from SharedPreferences
+        val goalCalories = prefs.getInt(KEY_CALORIE_GOAL, DEFAULT_CALORIE_GOAL)
+        val goalProtein = prefs.getInt(KEY_PROTEIN_GOAL, DEFAULT_PROTEIN_GOAL).toFloat()
+        val goalCarbs = prefs.getInt(KEY_CARBS_GOAL, DEFAULT_CARBS_GOAL).toFloat()
+        val goalFat = prefs.getInt(KEY_FAT_GOAL, DEFAULT_FAT_GOAL).toFloat()
 
-                        // Update circular progress
-                        val progress = currentCalories.toFloat() / goalCalories
-                        circularProgress.setProgress(progress)
+        // Observe today's total calories
+        lifecycleScope.launch {
+            database.mealDao().getTodayTotalCalories().collect { currentCalories ->
+                val remaining = goalCalories - currentCalories
+
+                runOnUiThread {
+                    tvCurrentCalories.text = String.format("%,d", currentCalories)
+                    tvGoalCalories.text = String.format("%,d", goalCalories)
+                    tvRemainingCalories.text = if (remaining >= 0) {
+                        "$remaining cal remaining"
+                    } else {
+                        "${Math.abs(remaining)} cal over"
                     }
-                }
-            }
 
-            // Observe today's protein
-            lifecycleScope.launch {
-                database.mealDao().getTodayTotalProtein().collect { currentProtein ->
-                    runOnUiThread {
-                        tvProteinValue.text = "${currentProtein.toInt()}/${goalProtein.toInt()}g"
-                        val proteinProgress = ((currentProtein / goalProtein) * 100).toInt().coerceIn(0, 100)
-                        proteinProgressBar.progress = proteinProgress
-                    }
-                }
-            }
-
-            // Observe today's carbs
-            lifecycleScope.launch {
-                database.mealDao().getTodayTotalCarbs().collect { currentCarbs ->
-                    runOnUiThread {
-                        tvCarbsValue.text = "${currentCarbs.toInt()}/${goalCarbs.toInt()}g"
-                        val carbsProgress = ((currentCarbs / goalCarbs) * 100).toInt().coerceIn(0, 100)
-                        carbsProgressBar.progress = carbsProgress
-                    }
-                }
-            }
-
-            // Observe today's fat
-            lifecycleScope.launch {
-                database.mealDao().getTodayTotalFat().collect { currentFat ->
-                    runOnUiThread {
-                        tvFatValue.text = "${currentFat.toInt()}/${goalFat.toInt()}g"
-                        val fatProgress = ((currentFat / goalFat) * 100).toInt().coerceIn(0, 100)
-                        fatProgressBar.progress = fatProgress
-                    }
+                    // Update circular progress
+                    val progress = currentCalories.toFloat() / goalCalories
+                    circularProgress.setProgress(progress)
                 }
             }
         }
-      //  val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
-       // val fabCamera = findViewById<FloatingActionButton>(R.id.fab_camera)
 
-        // Handle bottom navigation item clicks
-//        bottomNav.setOnItemSelectedListener { item ->
-//            when (item.itemId) {
-//                R.id.nav_home -> {
-//                    Toast.makeText(this, "Home", Toast.LENGTH_SHORT).show()
-//                    true
-//                }
-//                R.id.nav_analysis -> {
-//                    Toast.makeText(this, "Analysis", Toast.LENGTH_SHORT).show()
-//                    true
-//                }
-//                R.id.nav_history -> {
-//                    // 👉 Navigate to the MealHistoryActivity
-//                    val intent = Intent(this, MealHistoryActivity::class.java)
-//                    startActivity(intent)
-//                    true
-//                }
-//                else -> false
-//            }
-//        }
+        // Observe today's protein
+        lifecycleScope.launch {
+            database.mealDao().getTodayTotalProtein().collect { currentProtein ->
+                runOnUiThread {
+                    tvProteinValue.text = "${currentProtein.toInt()}/${goalProtein.toInt()}g"
+                    // Check for zero goal to prevent division by zero
+                    val proteinProgress = if (goalProtein > 0) ((currentProtein / goalProtein) * 100).toInt().coerceIn(0, 100) else 0
+                    proteinProgressBar.progress = proteinProgress
+                }
+            }
+        }
 
-        // Handle camera FAB click (Main feature!)
-//        fabCamera.setOnClickListener {
-//            Toast.makeText(this, "Camera opened!", Toast.LENGTH_SHORT).show()
-//            // TODO: Open camera activity
-//        }
-//    }
+        // Observe today's carbs
+        lifecycleScope.launch {
+            database.mealDao().getTodayTotalCarbs().collect { currentCarbs ->
+                runOnUiThread {
+                    tvCarbsValue.text = "${currentCarbs.toInt()}/${goalCarbs.toInt()}g"
+                    // Check for zero goal to prevent division by zero
+                    val carbsProgress = if (goalCarbs > 0) ((currentCarbs / goalCarbs) * 100).toInt().coerceIn(0, 100) else 0
+                    carbsProgressBar.progress = carbsProgress
+                }
+            }
+        }
+
+        // Observe today's fat
+        lifecycleScope.launch {
+            database.mealDao().getTodayTotalFat().collect { currentFat ->
+                runOnUiThread {
+                    tvFatValue.text = "${currentFat.toInt()}/${goalFat.toInt()}g"
+                    // Check for zero goal to prevent division by zero
+                    val fatProgress = if (goalFat > 0) ((currentFat / goalFat) * 100).toInt().coerceIn(0, 100) else 0
+                    fatProgressBar.progress = fatProgress
+                }
+            }
+        }
+    }
 }
-
-//package com.example.bitesight
-//
-//import android.os.Bundle
-//import android.widget.Button
-//import android.widget.LinearLayout
-//import android.widget.ScrollView
-//import android.widget.TextView
-//import androidx.appcompat.app.AppCompatActivity
-//import androidx.lifecycle.lifecycleScope
-//import com.example.bitesight.data.local.AppDatabase
-//import com.example.bitesight.data.local.entity.Meal
-//import kotlinx.coroutines.flow.first
-//import kotlinx.coroutines.launch
-//
-//class MainActivity : AppCompatActivity() {
-//
-//    private lateinit var database: AppDatabase
-//    private lateinit var statsText: TextView
-//
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//
-//        // Initialize database
-//        database = AppDatabase.getDatabase(this)
-//
-//        // Create UI
-//        val layout = LinearLayout(this).apply {
-//            orientation = LinearLayout.VERTICAL
-//            setPadding(32, 32, 32, 32)
-//        }
-//
-//        // Stats TextView
-//        statsText = TextView(this).apply {
-//            textSize = 16f
-//            setPadding(0, 0, 0, 32)
-//        }
-//        layout.addView(statsText)
-//
-//        // Add Chicken Button
-//        val btnChicken = Button(this).apply {
-//            text = "Add Chicken (250 cal)"
-//            setOnClickListener {
-//                lifecycleScope.launch {
-//                    val meal = Meal(
-//                        foodName = "Chicken",
-//                        calories = 250,
-//                        protein = 30f,
-//                        fat = 14f,
-//                        carbs = 0f,
-//                        confidence = 0.95f,
-//                        imagePath = null
-//                    )
-//                    database.mealDao().insertMeal(meal)
-//                    updateStats()
-//                }
-//            }
-//        }
-//        layout.addView(btnChicken)
-//
-//        // Add Rice Button
-//        val btnRice = Button(this).apply {
-//            text = "Add Rice (200 cal)"
-//            setOnClickListener {
-//                lifecycleScope.launch {
-//                    val meal = Meal(
-//                        foodName = "Rice",
-//                        calories = 200,
-//                        protein = 4f,
-//                        fat = 0.4f,
-//                        carbs = 44f,
-//                        confidence = 0.92f,
-//                        imagePath = null
-//                    )
-//                    database.mealDao().insertMeal(meal)
-//                    updateStats()
-//                }
-//            }
-//        }
-//        layout.addView(btnRice)
-//
-//        // Clear Button
-//        val btnClear = Button(this).apply {
-//            text = "Clear All"
-//            setOnClickListener {
-//                lifecycleScope.launch {
-//                    database.mealDao().deleteAllMeals()
-//                    updateStats()
-//                }
-//            }
-//        }
-//        layout.addView(btnClear)
-//
-//        // Wrap in ScrollView
-//        val scrollView = ScrollView(this).apply {
-//            addView(layout)
-//        }
-//
-//        setContentView(scrollView)
-//
-//        // Initial stats
-//        updateStats()
-//    }
-//
-//    private fun updateStats() {
-//        lifecycleScope.launch {
-//            val calories = database.mealDao().getTodayTotalCalories().first()
-//            val protein = database.mealDao().getTodayTotalProtein().first()
-//            val carbs = database.mealDao().getTodayTotalCarbs().first()
-//            val fat = database.mealDao().getTodayTotalFat().first()
-//            val count = database.mealDao().getTodayMealCount().first()
-//
-//            statsText.text = """
-//                Room Database Test
-//
-//                Today's Totals:
-//                Calories: $calories cal
-//                Protein: ${String.format("%.1f", protein)}g
-//                Carbs: ${String.format("%.1f", carbs)}g
-//                Fat: ${String.format("%.1f", fat)}g
-//                Meals: $count
-//            """.trimIndent()
-//        }
-//    }
-//}
