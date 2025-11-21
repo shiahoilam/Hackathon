@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="16dp"
+    android:layout_margin="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#1C1B1F"
+        android:paddingBottom="16dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:background="#3A3A3A">
+
+            <TextView
+                android:id="@+id/dialogTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Calorie Goal Exceeded"
+                android:textColor="@color/warning_color"  android:textSize="20sp"
+                android:textStyle="bold"
+                android:layout_centerVertical="true"/>
+
+            <ImageButton
+                android:id="@+id/closeAdviceButton"  android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentEnd="true"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Close"
+                app:tint="#FFFFFF"
+                android:alpha="0.9" />
+        </RelativeLayout>
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tvExceededAmount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚠️ You are 250 kcal over your goal."
+                android:textColor="@color/warning_color"
+                android:textSize="18sp"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:id="@+id/tvAdviceMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Don't worry about yesterday; today is a new start! Focus on high-fiber, low-calorie foods today."
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:layout_marginBottom="24dp" />
+
+            <Button
+                android:id="@+id/adviceCloseButton"  android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Got it"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#8B7FB8"
+                android:padding="16dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

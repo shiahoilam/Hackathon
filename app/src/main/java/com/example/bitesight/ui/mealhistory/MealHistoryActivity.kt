@@ -2,9 +2,12 @@ package com.example.bitesight.ui.mealhistory
 
 import android.app.DatePickerDialog
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -19,6 +22,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
+import android.widget.ImageButton
+import android.content.Context
+import com.example.bitesight.SettingsActivity
 
 class MealHistoryActivity : BaseActivity(), MealActionListener {
 
@@ -30,6 +36,14 @@ class MealHistoryActivity : BaseActivity(), MealActionListener {
     private lateinit var btnYesterday: Button
     private lateinit var btnSelectDate: Button
 
+    // PROPERTIES for Calorie Balance
+    private lateinit var tvCalorieBalance: TextView
+
+    // Constants copied from SettingsActivity for consistent SharedPreferences access
+    private val PREFS_NAME = SettingsActivity.PREFS_NAME
+    private val KEY_CALORIE_GOAL = SettingsActivity.KEY_CALORIE_GOAL
+    private val DEFAULT_CALORIE_GOAL = SettingsActivity.DEFAULT_CALORIE_GOAL
+
     private var currentFilter = FilterType.TODAY
     private var mealToRelog: Meal? = null
     private var lastCustomDateStart: Long? = null
@@ -37,6 +51,12 @@ class MealHistoryActivity : BaseActivity(), MealActionListener {
 
     enum class FilterType {
         TODAY, YESTERDAY, CUSTOM
+    }
+
+    // *** NEW FUNCTION: Get the dynamic calorie goal from SharedPreferences ***
+    private fun getCalorieGoal(): Int {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt(KEY_CALORIE_GOAL, DEFAULT_CALORIE_GOAL)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +80,8 @@ class MealHistoryActivity : BaseActivity(), MealActionListener {
         btnToday = findViewById(R.id.btnToday)
         btnYesterday = findViewById(R.id.btnYesterday)
         btnSelectDate = findViewById(R.id.btnSelectDate)
+
+        tvCalorieBalance = findViewById(R.id.tvCalorieBalance)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = MealAdapter(emptyList(), this)
@@ -149,6 +171,7 @@ class MealHistoryActivity : BaseActivity(), MealActionListener {
             }
         }
     }
+
     private fun showDatePicker() {
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
@@ -192,13 +215,41 @@ class MealHistoryActivity : BaseActivity(), MealActionListener {
 
     private fun updateTotalCalories(meals: List<Meal>) {
         val totalCalories = meals.sumOf { it.calories }
-        tvTotalCalories.text = "$totalCalories Calories logged"
+        val currentGoal = getCalorieGoal() // <-- GET DYNAMIC GOAL HERE
+
+        // 1. Update Total Logged Calories (Large text)
+        tvTotalCalories.text = "${String.format("%,d", totalCalories.toInt())} kcal"
+
+        // 2. Calculate and Display Balance
+        val remaining = currentGoal - totalCalories.toInt()
+        val balanceText: String
+        val balanceColor: Int
+
+        if (remaining >= 0) {
+            // Under or met goal (Remaining)
+            balanceText = "${String.format("%,d", remaining)} kcal remaining (Goal: ${String.format("%,d", currentGoal)})"
+            balanceColor = ContextCompat.getColor(this, R.color.progress_green)
+        } else {
+            // Over goal (Exceeded)
+            val exceeded = Math.abs(remaining)
+            balanceText = "${String.format("%,d", exceeded)} kcal over (Goal: ${String.format("%,d", currentGoal)})"
+            balanceColor = ContextCompat.getColor(this, R.color.warning_color)
+
+            showOverGoalAdvice(exceeded)
+        }
+
+        tvCalorieBalance.text = balanceText
+        tvCalorieBalance.setTextColor(balanceColor)
     }
 
 
     override fun onLogMealClicked(meal: Meal) {
         mealToRelog = meal
         showRelogDatePicker()
+    }
+
+    override fun onViewStatsClicked(meal: Meal) {
+        showMealStatsDialog(meal)
     }
 
 
@@ -249,6 +300,49 @@ class MealHistoryActivity : BaseActivity(), MealActionListener {
                 }
             }
         }
+    }
+
+    private fun showOverGoalAdvice(exceededAmount: Int) {
+        val adviceList = if (exceededAmount <= 300) {
+            listOf(
+                "It happens! Focus on mindful eating tomorrow. Try setting a timer for 20 minutes to slow down.",
+                "Choose a lighter dinner or snack next time, like fresh vegetables or a piece of fruit.",
+                "Plan a 30-minute brisk walk today. Increased movement helps balance the extra energy."
+            )
+        } else {
+            listOf(
+                "Don't worry about yesterday; today is a new start! Focus on high-fiber, low-calorie foods today.",
+                "Review your biggest meal from yesterday. Could you swap out a high-fat side for steamed vegetables next time?",
+                "Ensure you're drinking enough water (8 glasses). Thirst is often mistaken for hunger.",
+                "Incorporate a 45-minute moderate exercise session into your routine this week."
+            )
+        }
+
+        val advice = adviceList.random()
+
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_advice_warning, null)
+
+        val tvTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
+        val tvExceeded = dialogView.findViewById<TextView>(R.id.tvExceededAmount)
+        val tvAdvice = dialogView.findViewById<TextView>(R.id.tvAdviceMessage)
+        val closeButton = dialogView.findViewById<Button>(R.id.adviceCloseButton)
+        val closeImageButton = dialogView.findViewById<ImageButton>(R.id.closeAdviceButton)
+
+        tvTitle.text = "Goal Exceeded"
+        tvExceeded.text = "⚠️ You are ${String.format("%,d", exceededAmount)} kcal over your goal."
+        tvAdvice.text = "💡 $advice\n\nRemember, consistency matters more than perfection!"
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        closeButton.setOnClickListener { dialog.dismiss() }
+        closeImageButton.setOnClickListener { dialog.dismiss() }
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialog.show()
     }
 
     private fun refreshCurrentView() {
@@ -306,5 +400,36 @@ class MealHistoryActivity : BaseActivity(), MealActionListener {
                 refreshCurrentView()
             }
         }
+    }
+
+    private fun showMealStatsDialog(meal: Meal) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_meal_stats, null)
+
+        val tvName = dialogView.findViewById<TextView>(R.id.dialogMealName)
+        val tvCalories = dialogView.findViewById<TextView>(R.id.dialogCalories)
+        val tvProtein = dialogView.findViewById<TextView>(R.id.dialogProteinGrams)
+        val tvCarbs = dialogView.findViewById<TextView>(R.id.dialogCarbsGrams)
+        val tvFat = dialogView.findViewById<TextView>(R.id.dialogFatGrams)
+        val closeButton = dialogView.findViewById<Button>(R.id.dialogCloseButton)
+        val closeImageButton = dialogView.findViewById<ImageButton>(R.id.closeStatsButton)
+
+
+        tvName.text = meal.foodName
+        tvCalories.text = "${meal.calories} kcal"
+        tvProtein.text = String.format("%.1fg", meal.protein)
+        tvCarbs.text = String.format("%.1fg", meal.carbs)
+        tvFat.text = String.format("%.1fg", meal.fat)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        closeButton.setOnClickListener { dialog.dismiss() }
+        closeImageButton.setOnClickListener { dialog.dismiss() }
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialog.show()
     }
 }

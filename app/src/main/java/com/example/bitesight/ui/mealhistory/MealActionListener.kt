@@ -7,4 +7,5 @@ interface MealActionListener {
      * Called when the "Log Meal" button is clicked for a specific meal item.
      */
     fun onLogMealClicked(meal: Meal)
+    fun onViewStatsClicked(meal: Meal)
 }
