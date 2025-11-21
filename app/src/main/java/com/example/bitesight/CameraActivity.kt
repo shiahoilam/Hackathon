@@ -29,10 +29,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.example.bitesight.data.local.db.AppDatabase
+import com.example.bitesight.data.local.entity.Meal
 import com.google.ar.core.ArCoreApk
 import com.google.ar.core.Config
 import com.google.ar.core.Session
 import com.google.ar.core.exceptions.CameraNotAvailableException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.gpu.GpuDelegate
@@ -40,24 +46,14 @@ import org.tensorflow.lite.support.common.ops.NormalizeOp
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ops.ResizeOp
+import java.io.File
 import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
-import androidx.lifecycle.lifecycleScope
-import com.example.bitesight.data.local.db.AppDatabase
-import com.example.bitesight.data.local.entity.Meal
-import com.example.bitesight.BackgroundRenderer
-import com.example.bitesight.DetectionOverlayView
-import com.example.bitesight.FoodInfo
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.microedition.khronos.egl.EGLConfig
@@ -83,7 +79,7 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     private lateinit var outputDirectory: File
     private var capturedImagePath: String? = null
     private var capturedTimestamp: Long = 0L
-    
+
     // Store latest detection results for capture
     private var latestDetectionResults: List<DetectionResult> = emptyList()
     private val captureRequested = AtomicBoolean(false)
@@ -102,110 +98,112 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
     // Data
     private val labels = mutableListOf<String>()
+
+    // UPDATED DATABASE: Added Standard Portion Sizes (in grams)
     private val foodDatabase = mapOf(
-        "candy" to FoodInfo(394, 1.20f, 0.0f, 0.2f, 99.0f),
-        "egg tart" to FoodInfo(350, 0.90f, 6.5f, 18.0f, 40.0f),
-        "french fries" to FoodInfo(312, 0.45f, 3.4f, 15.0f, 41.0f),
-        "chocolate" to FoodInfo(546, 1.30f, 4.9f, 31.0f, 61.0f),
-        "biscuit" to FoodInfo(488, 0.45f, 6.5f, 21.0f, 68.0f),
-        "popcorn" to FoodInfo(387, 0.10f, 12.6f, 4.5f, 78.0f),
-        "pudding" to FoodInfo(131, 1.02f, 2.8f, 2.7f, 23.0f),
-        "ice cream" to FoodInfo(207, 0.61f, 3.5f, 11.0f, 24.0f),
-        "cheese butter" to FoodInfo(717, 0.91f, 0.9f, 81.0f, 0.1f),
-        "cake" to FoodInfo(337, 0.42f, 4.9f, 13.0f, 51.0f),
-        "wine" to FoodInfo(85, 0.99f, 0.1f, 0.0f, 2.6f),
-        "milkshake" to FoodInfo(119, 1.02f, 3.3f, 3.4f, 19.0f),
-        "coffee" to FoodInfo(2, 0.99f, 0.3f, 0.0f, 0.0f),
-        "juice" to FoodInfo(45, 1.04f, 0.7f, 0.2f, 10.4f),
-        "milk" to FoodInfo(61, 1.03f, 3.2f, 3.3f, 4.8f),
-        "tea" to FoodInfo(1, 0.99f, 0.0f, 0.0f, 0.3f),
-        "almond" to FoodInfo(579, 0.55f, 21.0f, 50.0f, 22.0f),
-        "red beans" to FoodInfo(333, 0.75f, 24.0f, 1.0f, 60.0f),
-        "cashew" to FoodInfo(553, 0.50f, 18.0f, 44.0f, 30.0f),
-        "dried cranberries" to FoodInfo(308, 0.60f, 0.2f, 1.4f, 82.0f),
-        "soy" to FoodInfo(173, 1.00f, 17.0f, 9.0f, 10.0f),
-        "walnut" to FoodInfo(654, 0.60f, 15.0f, 65.0f, 14.0f),
-        "peanut" to FoodInfo(567, 0.53f, 26.0f, 49.0f, 16.0f),
-        "egg" to FoodInfo(155, 1.03f, 13.0f, 11.0f, 1.1f),
-        "apple" to FoodInfo(52, 0.53f, 0.3f, 0.2f, 14.0f),
-        "date" to FoodInfo(282, 1.30f, 2.5f, 0.4f, 75.0f),
-        "apricot" to FoodInfo(48, 0.50f, 1.4f, 0.4f, 11.0f),
-        "avocado" to FoodInfo(160, 0.95f, 2.0f, 15.0f, 8.5f),
-        "banana" to FoodInfo(89, 0.94f, 1.1f, 0.3f, 23.0f),
-        "strawberry" to FoodInfo(32, 0.60f, 0.7f, 0.3f, 7.7f),
-        "cherry" to FoodInfo(63, 0.60f, 1.1f, 0.2f, 16.0f),
-        "blueberry" to FoodInfo(57, 0.57f, 0.7f, 0.3f, 14.0f),
-        "raspberry" to FoodInfo(52, 0.60f, 1.2f, 0.7f, 12.0f),
-        "mango" to FoodInfo(60, 0.55f, 0.8f, 0.4f, 15.0f),
-        "olives" to FoodInfo(115, 0.92f, 0.8f, 11.0f, 6.3f),
-        "peach" to FoodInfo(39, 0.60f, 0.9f, 0.3f, 9.5f),
-        "lemon" to FoodInfo(29, 0.53f, 1.1f, 0.3f, 9.3f),
-        "pear" to FoodInfo(57, 0.56f, 0.4f, 0.1f, 15.0f),
-        "fig" to FoodInfo(74, 0.75f, 0.8f, 0.3f, 19.0f),
-        "pineapple" to FoodInfo(50, 0.52f, 0.5f, 0.1f, 13.0f),
-        "grape" to FoodInfo(69, 0.65f, 0.7f, 0.2f, 18.0f),
-        "kiwi" to FoodInfo(61, 0.62f, 1.1f, 0.5f, 15.0f),
-        "melon" to FoodInfo(34, 0.45f, 0.8f, 0.2f, 8.2f),
-        "orange" to FoodInfo(47, 0.55f, 0.9f, 0.1f, 12.0f),
-        "watermelon" to FoodInfo(30, 0.45f, 0.6f, 0.2f, 7.6f),
-        "steak" to FoodInfo(271, 1.05f, 25.0f, 19.0f, 0.0f),
-        "pork" to FoodInfo(242, 1.04f, 27.0f, 14.0f, 0.0f),
-        "chicken duck" to FoodInfo(337, 1.02f, 19.0f, 28.0f, 0.0f),
-        "sausage" to FoodInfo(301, 0.95f, 13.0f, 27.0f, 3.0f),
-        "fried meat" to FoodInfo(290, 1.00f, 26.0f, 20.0f, 1.0f),
-        "lamb" to FoodInfo(294, 1.05f, 25.0f, 21.0f, 0.0f),
-        "sauce" to FoodInfo(120, 0.98f, 2.0f, 8.0f, 12.0f),
-        "crab" to FoodInfo(97, 1.02f, 19.0f, 1.3f, 0.7f),
-        "fish" to FoodInfo(208, 1.03f, 20.0f, 13.0f, 0.0f),
-        "shellfish" to FoodInfo(85, 1.02f, 15.0f, 1.5f, 4.0f),
-        "shrimp" to FoodInfo(99, 1.02f, 24.0f, 0.3f, 0.2f),
-        "soup" to FoodInfo(38, 1.01f, 2.5f, 1.2f, 5.0f),
-        "bread" to FoodInfo(265, 0.25f, 9.0f, 3.2f, 49.0f),
-        "corn" to FoodInfo(86, 0.60f, 3.3f, 1.4f, 19.0f),
-        "hamburg" to FoodInfo(295, 0.85f, 17.0f, 14.0f, 27.0f),
-        "pizza" to FoodInfo(266, 0.68f, 11.0f, 10.0f, 33.0f),
-        "hanamaki baozi" to FoodInfo(221, 0.55f, 7.0f, 0.9f, 47.0f),
-        "wonton dumplings" to FoodInfo(206, 0.60f, 8.0f, 7.0f, 28.0f),
-        "pasta" to FoodInfo(131, 0.60f, 5.0f, 1.1f, 25.0f),
-        "noodles" to FoodInfo(138, 0.60f, 4.5f, 0.5f, 28.0f),
-        "rice" to FoodInfo(130, 0.85f, 2.7f, 0.3f, 28.0f),
-        "pie" to FoodInfo(295, 0.50f, 3.8f, 15.0f, 37.0f),
-        "tofu" to FoodInfo(76, 1.06f, 8.0f, 4.8f, 1.9f),
-        "eggplant" to FoodInfo(25, 0.92f, 1.0f, 0.2f, 5.9f),
-        "potato" to FoodInfo(77, 0.71f, 2.0f, 0.1f, 17.0f),
-        "garlic" to FoodInfo(149, 0.60f, 6.4f, 0.5f, 33.0f),
-        "cauliflower" to FoodInfo(25, 0.22f, 1.9f, 0.3f, 5.0f),
-        "tomato" to FoodInfo(18, 0.95f, 0.9f, 0.2f, 3.9f),
-        "kelp" to FoodInfo(43, 0.12f, 1.7f, 0.6f, 9.6f),
-        "seaweed" to FoodInfo(45, 0.35f, 6.0f, 0.6f, 9.0f),
-        "spring onion" to FoodInfo(32, 0.20f, 1.8f, 0.2f, 7.3f),
-        "rape" to FoodInfo(13, 0.20f, 1.5f, 0.2f, 2.2f),
-        "ginger" to FoodInfo(80, 0.75f, 1.8f, 0.8f, 18.0f),
-        "okra" to FoodInfo(33, 0.60f, 1.9f, 0.2f, 7.5f),
-        "lettuce" to FoodInfo(15, 0.14f, 1.4f, 0.2f, 2.9f),
-        "pumpkin" to FoodInfo(26, 0.44f, 1.0f, 0.1f, 6.5f),
-        "cucumber" to FoodInfo(16, 0.96f, 0.7f, 0.1f, 3.6f),
-        "white radish" to FoodInfo(18, 0.9f, 0.7f, 0.1f, 4.2f),
-        "carrot" to FoodInfo(41, 0.64f, 0.9f, 0.2f, 9.6f),
-        "asparagus" to FoodInfo(20, 0.24f, 2.2f, 0.2f, 3.9f),
-        "bamboo shoots" to FoodInfo(27, 0.70f, 2.6f, 0.3f, 5.2f),
-        "broccoli" to FoodInfo(34, 0.31f, 2.8f, 0.4f, 6.6f),
-        "celery stick" to FoodInfo(16, 0.14f, 0.7f, 0.2f, 3.0f),
-        "cilantro mint" to FoodInfo(23, 0.20f, 2.1f, 0.5f, 3.7f),
-        "snow peas" to FoodInfo(42, 0.70f, 2.8f, 0.2f, 7.6f),
-        "cabbage" to FoodInfo(25, 0.25f, 1.3f, 0.1f, 5.8f),
-        "bean sprouts" to FoodInfo(30, 0.34f, 3.1f, 0.2f, 5.9f),
-        "onion" to FoodInfo(40, 0.60f, 1.1f, 0.1f, 9.3f),
-        "pepper" to FoodInfo(31, 0.20f, 1.0f, 0.3f, 6.0f),
-        "green beans" to FoodInfo(31, 0.70f, 1.8f, 0.2f, 7.0f),
-        "french beans" to FoodInfo(31, 0.70f, 1.8f, 0.1f, 7.0f),
-        "king oyster mushroom" to FoodInfo(43, 0.40f, 3.3f, 0.4f, 7.6f),
-        "shiitake" to FoodInfo(34, 0.40f, 2.2f, 0.5f, 6.8f),
-        "enoki mushroom" to FoodInfo(37, 0.45f, 2.7f, 0.3f, 7.8f),
-        "oyster mushroom" to FoodInfo(33, 0.35f, 3.3f, 0.4f, 6.1f),
-        "white button mushroom" to FoodInfo(22, 0.30f, 3.1f, 0.3f, 3.3f),
-        "salad" to FoodInfo(15, 0.20f, 1.2f, 0.2f, 3.0f),
-        "other ingredients" to FoodInfo(0, 0.00f, 0.0f, 0.0f, 0.0f)
+        "candy" to FoodInfo(394, 1.20f, 40, 0.0f, 0.2f, 99.0f),            // density approx (processed confectionery)
+        "egg tart" to FoodInfo(350, 0.90f, 80, 6.5f, 18.0f, 40.0f),        // approx (bakery product)
+        "french fries" to FoodInfo(312, 0.45f, 120, 3.4f, 15.0f, 41.0f),   // fries (USDA composite)
+        "chocolate" to FoodInfo(546, 1.30f, 40, 4.9f, 31.0f, 61.0f),       // solid milk/dark chocolate (USDA)
+        "biscuit" to FoodInfo(488, 0.45f, 30, 6.5f, 21.0f, 68.0f),         // cookie/biscuit (USDA)
+        "popcorn" to FoodInfo(387, 0.10f, 30, 12.6f, 4.5f, 78.0f),         // popped popcorn bulk density (approx)
+        "pudding" to FoodInfo(131, 1.02f, 150, 2.8f, 2.7f, 23.0f),        // dairy pudding (USDA)
+        "ice cream" to FoodInfo(207, 0.61f, 100, 3.5f, 11.0f, 24.0f),      // vanilla ice cream (FAO/USDA)
+        "cheese butter" to FoodInfo(717, 0.91f, 14, 0.9f, 81.0f, 0.1f),    // butter (USDA/FAO)
+        "cake" to FoodInfo(337, 0.42f, 100, 4.9f, 13.0f, 51.0f),           // sponge cake (FAO/USDA)
+        "wine" to FoodInfo(85, 0.99f, 150, 0.1f, 0.0f, 2.6f),              // table wine (USDA)
+        "milkshake" to FoodInfo(119, 1.02f, 250, 3.3f, 3.4f, 19.0f),      // milkshake (USDA composite; approx)
+        "coffee" to FoodInfo(2, 0.99f, 240, 0.3f, 0.0f, 0.0f),            // brewed coffee (USDA)
+        "juice" to FoodInfo(45, 1.04f, 250, 0.7f, 0.2f, 10.4f),           // fruit juice (USDA)
+        "milk" to FoodInfo(61, 1.03f, 250, 3.2f, 3.3f, 4.8f),             // whole milk (USDA)
+        "tea" to FoodInfo(1, 0.99f, 240, 0.0f, 0.0f, 0.3f),               // brewed tea (USDA)
+        "almond" to FoodInfo(579, 0.55f, 28, 21.0f, 50.0f, 22.0f),        // almonds (FAO/USDA)
+        "red beans" to FoodInfo(333, 0.75f, 100, 24.0f, 1.0f, 60.0f),     // red kidney / adzuki (USDA)
+        "cashew" to FoodInfo(553, 0.50f, 28, 18.0f, 44.0f, 30.0f),        // cashews (FAO/USDA)
+        "dried cranberries" to FoodInfo(308, 0.60f, 40, 0.2f, 1.4f, 82.0f),// sweetened dried cranberries (USDA)
+        "soy" to FoodInfo(173, 1.00f, 100, 17.0f, 9.0f, 10.0f),           // soybeans (cooked / USDA)
+        "walnut" to FoodInfo(654, 0.60f, 28, 15.0f, 65.0f, 14.0f),        // walnuts (USDA)
+        "peanut" to FoodInfo(567, 0.53f, 28, 26.0f, 49.0f, 16.0f),        // peanuts (USDA)
+        "egg" to FoodInfo(155, 1.03f, 50, 13.0f, 11.0f, 1.1f),            // whole egg (USDA)
+        "apple" to FoodInfo(52, 0.53f, 150, 0.3f, 0.2f, 14.0f),           // raw apple (USDA/FAO)
+        "date" to FoodInfo(282, 1.30f, 24, 2.5f, 0.4f, 75.0f),           // dried dates (USDA)
+        "apricot" to FoodInfo(48, 0.50f, 35, 1.4f, 0.4f, 11.0f),         // fresh apricot (USDA)
+        "avocado" to FoodInfo(160, 0.95f, 100, 2.0f, 15.0f, 8.5f),       // avocado (USDA)
+        "banana" to FoodInfo(89, 0.94f, 118, 1.1f, 0.3f, 23.0f),         // raw banana (USDA)
+        "strawberry" to FoodInfo(32, 0.60f, 100, 0.7f, 0.3f, 7.7f),      // raw strawberries (USDA)
+        "cherry" to FoodInfo(63, 0.60f, 150, 1.1f, 0.2f, 16.0f),         // sweet cherries (USDA)
+        "blueberry" to FoodInfo(57, 0.57f, 100, 0.7f, 0.3f, 14.0f),      // raw blueberries (USDA)
+        "raspberry" to FoodInfo(52, 0.60f, 100, 1.2f, 0.7f, 12.0f),      // raw raspberries (USDA)
+        "mango" to FoodInfo(60, 0.55f, 165, 0.8f, 0.4f, 15.0f),          // raw mango (USDA)
+        "olives" to FoodInfo(115, 0.92f, 15, 0.8f, 11.0f, 6.3f),         // table olives (USDA)
+        "peach" to FoodInfo(39, 0.60f, 150, 0.9f, 0.3f, 9.5f),           // raw peach (USDA)
+        "lemon" to FoodInfo(29, 0.53f, 58, 1.1f, 0.3f, 9.3f),            // raw lemon (USDA)
+        "pear" to FoodInfo(57, 0.56f, 150, 0.4f, 0.1f, 15.0f),           // raw pear (USDA)
+        "fig" to FoodInfo(74, 0.75f, 50, 0.8f, 0.3f, 19.0f),             // fresh fig (USDA)
+        "pineapple" to FoodInfo(50, 0.52f, 165, 0.5f, 0.1f, 13.0f),      // fresh pineapple (USDA)
+        "grape" to FoodInfo(69, 0.65f, 151, 0.7f, 0.2f, 18.0f),          // table grapes (USDA)
+        "kiwi" to FoodInfo(61, 0.62f, 76, 1.1f, 0.5f, 15.0f),            // raw kiwi (USDA)
+        "melon" to FoodInfo(34, 0.45f, 150, 0.8f, 0.2f, 8.2f),           // cantaloupe / melon (USDA)
+        "orange" to FoodInfo(47, 0.55f, 131, 0.9f, 0.1f, 12.0f),         // raw orange (USDA)
+        "watermelon" to FoodInfo(30, 0.45f, 150, 0.6f, 0.2f, 7.6f),      // raw watermelon (USDA)
+        "steak" to FoodInfo(271, 1.05f, 150, 25.0f, 19.0f, 0.0f),        // beef steak (cooked average, USDA)
+        "pork" to FoodInfo(242, 1.04f, 100, 27.0f, 14.0f, 0.0f),         // pork (cooked, USDA)
+        "chicken duck" to FoodInfo(337, 1.02f, 150, 19.0f, 28.0f, 0.0f), // mixed/roasted (approx; composition varies)
+        "sausage" to FoodInfo(301, 0.95f, 80, 13.0f, 27.0f, 3.0f),       // pork sausage (USDA)
+        "fried meat" to FoodInfo(290, 1.00f, 100, 26.0f, 20.0f, 1.0f),   // fried battered meat (approx)
+        "lamb" to FoodInfo(294, 1.05f, 100, 25.0f, 21.0f, 0.0f),        // lamb (cooked, USDA)
+        "sauce" to FoodInfo(120, 0.98f, 30, 2.0f, 8.0f, 12.0f),         // generic sauce (approx)
+        "crab" to FoodInfo(97, 1.02f, 100, 19.0f, 1.3f, 0.7f),          // crab meat (USDA)
+        "fish" to FoodInfo(208, 1.03f, 150, 20.0f, 13.0f, 0.0f),        // oily fish average (USDA)
+        "shellfish" to FoodInfo(85, 1.02f, 100, 15.0f, 1.5f, 4.0f),     // mixed shellfish (approx)
+        "shrimp" to FoodInfo(99, 1.02f, 100, 24.0f, 0.3f, 0.2f),        // shrimp (USDA)
+        "soup" to FoodInfo(38, 1.01f, 250, 2.5f, 1.2f, 5.0f),          // clear soup (USDA / approx)
+        "bread" to FoodInfo(265, 0.25f, 50, 9.0f, 3.2f, 49.0f),         // white bread (USDA)
+        "corn" to FoodInfo(86, 0.60f, 90, 3.3f, 1.4f, 19.0f),           // sweet corn (cooked, USDA)
+        "hamburg" to FoodInfo(295, 0.85f, 150, 17.0f, 14.0f, 27.0f),    // burger (typical cooked avg)
+        "pizza" to FoodInfo(266, 0.68f, 150, 11.0f, 10.0f, 33.0f),      // pizza (average slice per 100 g values)
+        "hanamaki baozi" to FoodInfo(221, 0.55f, 100, 7.0f, 0.9f, 47.0f),// steamed bun (approx)
+        "wonton dumplings" to FoodInfo(206, 0.60f, 150, 8.0f, 7.0f, 28.0f),// wonton (boiled, approx)
+        "pasta" to FoodInfo(131, 0.60f, 180, 5.0f, 1.1f, 25.0f),        // cooked pasta (USDA)
+        "noodles" to FoodInfo(138, 0.60f, 180, 4.5f, 0.5f, 28.0f),      // cooked noodles (approx)
+        "rice" to FoodInfo(130, 0.85f, 150, 2.7f, 0.3f, 28.0f),         // cooked white rice (USDA)
+        "pie" to FoodInfo(295, 0.50f, 150, 3.8f, 15.0f, 37.0f),         // savory/pastry pie (approx)
+        "tofu" to FoodInfo(76, 1.06f, 100, 8.0f, 4.8f, 1.9f),           // firm tofu (USDA)
+        "eggplant" to FoodInfo(25, 0.92f, 100, 1.0f, 0.2f, 5.9f),       // raw eggplant (USDA)
+        "potato" to FoodInfo(77, 0.71f, 150, 2.0f, 0.1f, 17.0f),        // boiled potato (USDA)
+        "garlic" to FoodInfo(149, 0.60f, 3, 6.4f, 0.5f, 33.0f),         // raw garlic (USDA)
+        "cauliflower" to FoodInfo(25, 0.22f, 100, 1.9f, 0.3f, 5.0f),    // raw cauliflower (FAO/USDA)
+        "tomato" to FoodInfo(18, 0.95f, 100, 0.9f, 0.2f, 3.9f),         // raw tomato (USDA)
+        "kelp" to FoodInfo(43, 0.12f, 50, 1.7f, 0.6f, 9.6f),            // kelp/sea vegetable (FAO/approx)
+        "seaweed" to FoodInfo(45, 0.35f, 5, 6.0f, 0.6f, 9.0f),         // dried seaweed (approx)
+        "spring onion" to FoodInfo(32, 0.20f, 10, 1.8f, 0.2f, 7.3f),    // scallion (USDA)
+        "rape" to FoodInfo(13, 0.20f, 85, 1.5f, 0.2f, 2.2f),            // rapeseed/leaf veg (approx)
+        "ginger" to FoodInfo(80, 0.75f, 5, 1.8f, 0.8f, 18.0f),         // raw ginger (USDA)
+        "okra" to FoodInfo(33, 0.60f, 100, 1.9f, 0.2f, 7.5f),           // okra (USDA)
+        "lettuce" to FoodInfo(15, 0.14f, 50, 1.4f, 0.2f, 2.9f),         // lettuce (USDA)
+        "pumpkin" to FoodInfo(26, 0.44f, 100, 1.0f, 0.1f, 6.5f),        // pumpkin (USDA)
+        "cucumber" to FoodInfo(16, 0.96f, 100, 0.7f, 0.1f, 3.6f),       // cucumber (USDA)
+        "white radish" to FoodInfo(18, 0.90f, 100, 0.7f, 0.1f, 4.2f),   // daikon / radish (USDA)
+        "carrot" to FoodInfo(41, 0.64f, 61, 0.9f, 0.2f, 9.6f),          // raw carrot (USDA)
+        "asparagus" to FoodInfo(20, 0.24f, 90, 2.2f, 0.2f, 3.9f),       // asparagus (FAO/USDA)
+        "bamboo shoots" to FoodInfo(27, 0.70f, 100, 2.6f, 0.3f, 5.2f),  // bamboo shoots (approx)
+        "broccoli" to FoodInfo(34, 0.31f, 91, 2.8f, 0.4f, 6.6f),        // raw broccoli (USDA)
+        "celery stick" to FoodInfo(16, 0.14f, 40, 0.7f, 0.2f, 3.0f),    // celery (USDA)
+        "cilantro mint" to FoodInfo(23, 0.20f, 10, 2.1f, 0.5f, 3.7f),   // fresh herbs (approx)
+        "snow peas" to FoodInfo(42, 0.70f, 100, 2.8f, 0.2f, 7.6f),     // snow peas (USDA)
+        "cabbage" to FoodInfo(25, 0.25f, 100, 1.3f, 0.1f, 5.8f),        // raw cabbage (USDA)
+        "bean sprouts" to FoodInfo(30, 0.34f, 100, 3.1f, 0.2f, 5.9f),   // mung bean sprouts (USDA)
+        "onion" to FoodInfo(40, 0.60f, 110, 1.1f, 0.1f, 9.3f),          // raw onion (USDA)
+        "pepper" to FoodInfo(31, 0.20f, 100, 1.0f, 0.3f, 6.0f),         // bell pepper (USDA)
+        "green beans" to FoodInfo(31, 0.70f, 100, 1.8f, 0.2f, 7.0f),    // green beans (USDA)
+        "French beans" to FoodInfo(31, 0.70f, 100, 1.8f, 0.1f, 7.0f),   // same as green beans (naming)
+        "king oyster mushroom" to FoodInfo(43, 0.40f, 100, 3.3f, 0.4f, 7.6f), // king oyster (approx)
+        "shiitake" to FoodInfo(34, 0.40f, 100, 2.2f, 0.5f, 6.8f),       // shiitake mushroom (USDA/approx)
+        "enoki mushroom" to FoodInfo(37, 0.45f, 100, 2.7f, 0.3f, 7.8f), // enoki (approx)
+        "oyster mushroom" to FoodInfo(33, 0.35f, 100, 3.3f, 0.4f, 6.1f),// oyster mushroom (approx)
+        "white button mushroom" to FoodInfo(22, 0.30f, 100, 3.1f, 0.3f, 3.3f), // white button (USDA)
+        "salad" to FoodInfo(15, 0.20f, 85, 1.2f, 0.2f, 3.0f),          // mixed salad (approx)
+        "other ingredients" to FoodInfo(0, 0.00f, 0, 0.0f, 0.0f, 0.0f)
 
     )
 
@@ -282,13 +280,9 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
                 }
 
                 session = Session(this)
-
                 val config = session!!.config
                 if (session!!.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
                     config.depthMode = Config.DepthMode.AUTOMATIC
-                    Log.d(TAG, "Depth API Enabled")
-                } else {
-                    Log.w(TAG, "Depth API Not Supported on this device")
                 }
                 config.focusMode = Config.FocusMode.AUTO
                 session!!.configure(config)
@@ -299,7 +293,6 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
             }
         }
 
-        // --- ADDED: Safety check to set texture if session was just created but surface already exists ---
         if (session != null && backgroundRenderer.getTextureId() != -1) {
             session!!.setCameraTextureName(backgroundRenderer.getTextureId())
         }
@@ -307,7 +300,6 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         try {
             session!!.resume()
         } catch (e: CameraNotAvailableException) {
-            Log.e(TAG, "Camera not available", e)
             session = null
             return
         }
@@ -322,13 +314,18 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         }
     }
 
-    // --- GLSurfaceView.Renderer Implementation ---
+    override fun onDestroy() {
+        super.onDestroy()
+        session?.close()
+        session = null
+        interpreter?.close()
+        gpuDelegate?.close()
+        detectionExecutor.shutdown()
+    }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES20.glClearColor(0.1f, 0.1f, 0.1f, 1.0f)
         backgroundRenderer.createOnGlThread(this)
-
-        // --- CRITICAL FIX: Tell ARCore which texture to use ---
         session?.setCameraTextureName(backgroundRenderer.getTextureId())
     }
 
@@ -339,40 +336,29 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
     override fun onDrawFrame(gl: GL10?) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
-
         val session = session ?: return
         try {
-            // This will now work because we set the texture name!
             val frame = session.update()
-
             backgroundRenderer.draw(frame)
 
             if (!isDetecting.get()) {
                 try {
                     val cameraImage = frame.acquireCameraImage()
-                    val depthImage = try {
-                        frame.acquireDepthImage16Bits()
-                    } catch (e: Exception) { null }
+                    val depthImage = try { frame.acquireDepthImage16Bits() } catch (e: Exception) { null }
 
                     if (cameraImage != null) {
                         isDetecting.set(true)
                         val intrinsics = frame.camera.imageIntrinsics
-
-                        detectionExecutor.execute {
-                            processImage(cameraImage, depthImage, intrinsics)
-                        }
+                        detectionExecutor.execute { processImage(cameraImage, depthImage, intrinsics) }
                     }
                 } catch (e: Exception) {
                     isDetecting.set(false)
                 }
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "Error in draw frame", e)
         }
     }
-
-    // --- Detection Logic ---
 
     private fun processImage(cameraImage: Image, depthImage: Image?, intrinsics: com.google.ar.core.CameraIntrinsics) {
         try {
@@ -407,7 +393,8 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
                     result.copy(
                         weightGrams = weight,
                         calories = realCalories,
-                        unit = "($weight g)"
+                        unit = "($weight g)",
+                        standardPortion = info.standardPortion // Pass the target portion
                     )
                 } else {
                     result
@@ -415,11 +402,7 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
             }
 
             depthImage?.close()
-
-            runOnUiThread {
-                detectionOverlay.setDetectionResults(finalResults)
-                latestDetectionResults = finalResults
-            }
+            runOnUiThread { detectionOverlay.setDetectionResults(finalResults) }
 
         } catch (e: Exception) {
             Log.e(TAG, "Detection failed", e)
@@ -446,67 +429,39 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
 
         val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
         val out = java.io.ByteArrayOutputStream()
-
         yuvImage.compressToJpeg(Rect(0, 0, image.width, image.height), 80, out)
         val imageBytes = out.toByteArray()
         val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-
         val matrix = Matrix()
         matrix.postRotate(90f)
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
-    private fun hasCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this, Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
-    }
+    private fun hasCameraPermission() = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+    private fun requestCameraPermission() = ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 0)
 
-    private fun requestCameraPermission() {
-        ActivityCompat.requestPermissions(
-            this, arrayOf(Manifest.permission.CAMERA), CAMERA_PERMISSION_CODE
-        )
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == CAMERA_PERMISSION_CODE && !hasCameraPermission()) {
-            Toast.makeText(this, "Camera permission is needed to run this application", Toast.LENGTH_LONG).show()
-            finish()
-        }
-    }
-
-    // --- Copied Helpers from previous code ---
+    // Standard boiler plate...
     private fun loadLabels() {
-        try {
-            assets.open("labels.txt").bufferedReader().useLines { lines ->
-                labels.addAll(lines)
-            }
-        } catch (e: Exception) { Log.e(TAG, "Error loading labels", e) }
+        try { assets.open("labels.txt").bufferedReader().useLines { lines -> labels.addAll(lines) } } catch (e: Exception) {}
     }
 
     private fun initializeModel() {
         try {
             val modelBuffer = loadModelFile("food_seg16.tflite")
             val compatList = CompatibilityList()
-            val options = Interpreter.Options().apply{
-                if(compatList.isDelegateSupportedOnThisDevice){
-                    this.addDelegate(GpuDelegate(compatList.bestOptionsForThisDevice))
-                } else {
-                    this.setNumThreads(4)
-                }
+            val options = Interpreter.Options().apply {
+                if(compatList.isDelegateSupportedOnThisDevice) addDelegate(GpuDelegate(compatList.bestOptionsForThisDevice))
+                else setNumThreads(4)
             }
             interpreter = Interpreter(modelBuffer, options)
-        } catch (e: Exception) { Log.e(TAG, "Error loading model", e) }
+        } catch (e: Exception) {}
     }
-
     private fun loadModelFile(modelName: String): MappedByteBuffer {
         val fileDescriptor = assets.openFd(modelName)
         val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
         val fileChannel = inputStream.channel
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, fileDescriptor.startOffset, fileDescriptor.declaredLength)
     }
-
     private fun convertTensorImageToByteBuffer(tensorImage: TensorImage): ByteBuffer {
         val buffer = tensorImage.buffer
         val byteBuffer = ByteBuffer.allocateDirect(buffer.capacity())
@@ -515,24 +470,18 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         byteBuffer.rewind()
         return byteBuffer
     }
-
     private fun runInference(inputBuffer: ByteBuffer): List<DetectionResult> {
         val interp = interpreter ?: return emptyList()
-
         val outputs = mutableMapOf<Int, Any>()
         outputs[0] = outputBuffer
         interp.runForMultipleInputsOutputs(arrayOf(inputBuffer), outputs)
-
         return parseRawOutput(outputBuffer)
     }
-
     private fun parseRawOutput(outputBuffer: Array<Array<FloatArray>>): List<DetectionResult> {
         val results = mutableListOf<DetectionResult>()
         val transposedOutput = Array(1) { Array(8400) { FloatArray(139) } }
         for (i in 0 until 8400) {
-            for (j in 0 until 139) {
-                transposedOutput[0][i][j] = outputBuffer[0][j][i]
-            }
+            for (j in 0 until 139) { transposedOutput[0][i][j] = outputBuffer[0][j][i] }
         }
         val detections = transposedOutput[0]
         val numClasses = 139 - 4
@@ -546,10 +495,7 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
             var classId = -1
             val maxClassIndex = minOf(numClasses, labels.size)
             for (i in 4 until (4 + maxClassIndex)) {
-                if (detection[i] > maxScore) {
-                    maxScore = detection[i]
-                    classId = i - 4
-                }
+                if (detection[i] > maxScore) { maxScore = detection[i]; classId = i - 4 }
             }
             if (maxScore > 0.45f && classId >= 0 && classId < labels.size) {
                 val label = labels[classId].trim()
@@ -563,14 +509,7 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
                         val ymax = minOf(previewHeight, (cy + h / 2) * previewHeight)
                         if (xmax > xmin && ymax > ymin) {
                             val info = foodDatabase[label.lowercase()] ?: foodDatabase["default"]!!
-                            results.add(
-                                DetectionResult(
-                                    foodName = label,
-                                    confidence = maxScore,
-                                    boundingBox = RectF(xmin, ymin, xmax, ymax),
-                                    calories = info.calories
-                                )
-                            )
+                            results.add(DetectionResult(label, maxScore, RectF(xmin, ymin, xmax, ymax), info.calories))
                         }
                     }
                 }
@@ -578,23 +517,18 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         }
         return applyNms(results)
     }
-
     private fun applyNms(results: List<DetectionResult>): List<DetectionResult> {
         val sortedResults = results.sortedByDescending { it.confidence }
         val finalResults = mutableListOf<DetectionResult>()
         for (result in sortedResults) {
             var shouldAdd = true
             for (finalResult in finalResults) {
-                if (calculateIoU(result.boundingBox, finalResult.boundingBox) > 0.45f) {
-                    shouldAdd = false
-                    break
-                }
+                if (calculateIoU(result.boundingBox, finalResult.boundingBox) > 0.45f) { shouldAdd = false; break }
             }
             if (shouldAdd) finalResults.add(result)
         }
         return finalResults
     }
-
     private fun calculateIoU(box1: RectF, box2: RectF): Float {
         val xA = maxOf(box1.left, box2.left)
         val yA = maxOf(box1.top, box2.top)
@@ -606,11 +540,7 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         val unionArea = box1Area + box2Area - intersectionArea
         return if (unionArea > 0) intersectionArea / unionArea else 0f
     }
-
-    companion object {
-        private const val TAG = "CameraActivity"
-        private const val CAMERA_PERMISSION_CODE = 0
-    }
+    companion object { private const val TAG = "CameraActivity" }
 
     private fun setupSwipeGesture() {
         var initialY = 0f
@@ -694,15 +624,15 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
             Toast.makeText(this, "AR Camera not ready", Toast.LENGTH_SHORT).show()
             return
         }
-        
+
         // Request capture - the next frame will be captured
         captureRequested.set(true)
     }
-    
+
     private fun saveCapturedImage(cameraImage: Image, depthImage: Image?, intrinsics: com.google.ar.core.CameraIntrinsics) {
         try {
             val bitmap = yuvToBitmap(cameraImage)
-            
+
             // Process detection on this frame if not already done
             val tensorImage = TensorImage.fromBitmap(bitmap)
             val imageProcessor = ImageProcessor.Builder()
@@ -738,30 +668,30 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
                     result
                 }
             }
-            
+
             // Save the bitmap to file
             val photoFile = File(
                 outputDirectory,
                 SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US).format(System.currentTimeMillis()) + ".jpg"
             )
-            
+
             photoFile.outputStream().use { out ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
             }
-            
+
             capturedImagePath = photoFile.absolutePath
             capturedTimestamp = System.currentTimeMillis()
             latestDetectionResults = finalResults
-            
+
             depthImage?.close()
             cameraImage.close()
-            
+
             runOnUiThread {
                 displayCapturedImage(photoFile)
                 updateNutritionalData()
                 showOverlay()
             }
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Error saving captured image", e)
             cameraImage.close()
@@ -830,7 +760,7 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
         var totalProtein = 0f
         var totalCarbs = 0f
         var totalFat = 0f
-        
+
         latestDetectionResults.forEach { result ->
             val info = foodDatabase[result.foodName.lowercase()] ?: foodDatabase["other ingredients"]!!
             val weight = if (result.weightGrams > 0) result.weightGrams.toFloat() else 100f
@@ -838,7 +768,7 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
             totalCarbs += info.carbs * (weight / 100f)
             totalFat += info.fat * (weight / 100f)
         }
-        
+
         // Calculate percentages (assuming daily values: 50g protein, 250g carbs, 65g fat)
         val proteinPercent = ((totalProtein / 50f) * 100f).toInt().coerceIn(0, 100)
         val carbsPercent = ((totalCarbs / 250f) * 100f).toInt().coerceIn(0, 100)
@@ -857,7 +787,7 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
                 val meals = latestDetectionResults.map { result ->
                     val info = foodDatabase[result.foodName.lowercase()] ?: foodDatabase["other ingredients"]!!
                     val weight = if (result.weightGrams > 0) result.weightGrams.toFloat() else 100f
-                    
+
                     Meal(
                         foodName = result.foodName,
                         calories = result.calories,
@@ -892,13 +822,4 @@ class CameraActivity : BaseActivity(), GLSurfaceView.Renderer {
     private fun allPermissionsGranted() = ContextCompat.checkSelfPermission(
         this, Manifest.permission.CAMERA
     ) == PackageManager.PERMISSION_GRANTED
-
-    override fun onDestroy() {
-        super.onDestroy()
-        session?.close()
-        session = null
-        interpreter?.close()
-        gpuDelegate?.close()
-        detectionExecutor.shutdown()
-    }
 }
